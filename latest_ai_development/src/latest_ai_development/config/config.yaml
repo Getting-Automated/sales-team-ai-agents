@@ -1,0 +1,46 @@
+# config/config.yaml
+
+customer_icp:
+  industry: Technology
+  company_size: 50-500 employees
+  revenue: Over $10 million
+  location: North America
+  other_criteria: Interested in AI solutions
+  job_levels:
+    - Manager
+    - Director
+    - VP
+    - C-Level
+  technical_expertise:
+    - Technical
+    - Non-Technical
+  departments:
+    - Engineering
+    - Marketing
+    - Sales
+
+use_case_type:
+  - UseCaseA
+  - UseCaseB
+
+industry_keywords: Artificial Intelligence, Machine Learning, AI Trends
+
+subreddit_list:
+  - ArtificialIntelligence
+  - MachineLearning
+
+solution_templates:
+  - Template 1 content...
+  - Template 2 content...
+
+company_info:
+  name: Your Company Name
+  products:
+    - Product A
+    - Product B
+  services:
+    - Service A
+    - Service B
+  value_propositions:
+    - We offer cutting-edge AI solutions.
+    - Our platform increases efficiency.

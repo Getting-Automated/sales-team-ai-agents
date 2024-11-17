@@ -1,0 +1,29 @@
+# config/tasks.yaml
+
+customer_analysis_task:
+  description: >
+    Analyze the provided leads and assign scores based on their profiles and the given Customer ICP. Store the results in Airtable.
+  expected_output: >
+    Leads with scores, tiers, and enriched profiles stored in Airtable.
+  agent: customer_icp_agent
+
+pain_point_task:
+  description: >
+    Identify industry pain points using the provided industry keywords. Store findings in Airtable.
+  expected_output: >
+    Pain points, keywords, and highlighted quotes stored in Airtable.
+  agent: pain_point_agent
+
+template_customization_task:
+  description: >
+    Customize solution templates based on the latest pain points and the provided solution templates. Store them in Airtable.
+  expected_output: >
+    Customized solution templates stored in Airtable.
+  agent: solution_templates_agent
+
+offer_creation_task:
+  description: >
+    Generate personalized offer documents and email drafts using customized templates and enriched profiles. Store the results in Airtable.
+  expected_output: >
+    Personalized offers and email drafts stored in Airtable.
+  agent: offer_creator_agent

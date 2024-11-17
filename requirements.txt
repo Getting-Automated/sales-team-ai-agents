@@ -1,0 +1,7 @@
+crewai
+crewai[tools]
+openai
+pyairtable
+requests
+praw
+python-dotenv
