@@ -3,10 +3,11 @@
 from crewai.tools import BaseTool
 import os
 import openai
+from typing import ClassVar
 
 class OpenAITool(BaseTool):
-    name = "openai_tool"
-    description = "Performs NLP tasks using OpenAI's GPT-4 model."
+    name: ClassVar[str] = "openai_tool"
+    description: ClassVar[str] = "Performs NLP tasks using OpenAI's GPT-4 model."
 
     def _run(self, prompt: str, max_tokens: int = 1500, temperature: float = 0.5) -> str:
         """Generate a completion for the given prompt."""

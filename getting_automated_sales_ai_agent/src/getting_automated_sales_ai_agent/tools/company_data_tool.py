@@ -1,29 +1,36 @@
 # tools/company_data_tool.py
 
 from crewai.tools import BaseTool
-import os
-import json
+from pydantic import Field, BaseModel
+from typing import Any, Type
 import requests
 from bs4 import BeautifulSoup
 import tldextract
 import time
 from urllib.parse import urljoin, urlparse
+import json
+from urllib.robotparser import RobotFileParser
+
+class CompanyDataToolArgs(BaseModel):
+    domain: str = Field(description="The domain to crawl")
 
 class CompanyDataTool(BaseTool):
-    name = "company_data_tool"
-    description = "Crawls the company's website to extract relevant information."
+    name: str = "company_data_tool"
+    description: str = "Crawls the company's website to extract relevant information."
+    llm: Any = Field(description="LLM instance to use for text analysis")
+    args_schema: Type[BaseModel] = CompanyDataToolArgs
 
-    def __init__(self, llm):
-        super().__init__()
-        self.llm = llm
-        self.visited_urls = set()
-        self.max_depth = 2  # Limit crawling depth to avoid overloading the site
-        self.max_pages = 20  # Limit the number of pages to crawl per site
-        self.headers = {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) '
-                          'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15A372 '
-                          'Safari/604.1'
-        }
+    visited_urls: set = Field(default_factory=set)
+    max_depth: int = 2
+    max_pages: int = 20
+    headers: dict = Field(default_factory=lambda: {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) '
+                      'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15A372 '
+                      'Safari/604.1'
+    })
+
+    class Config:
+        arbitrary_types_allowed = True
 
     def _run(self, domain: str) -> dict:
         """Fetch and analyze company data from the company's website."""
@@ -43,8 +50,8 @@ class CompanyDataTool(BaseTool):
             return {"error": f"Crawling is disallowed by robots.txt for {base_url}"}
 
         # Start crawling from the base URL
-        extracted_texts = []
         self.visited_urls = set()
+        extracted_texts = []
         self.crawl_site(base_url, base_url, 0, extracted_texts)
 
         if not extracted_texts:
@@ -65,20 +72,15 @@ class CompanyDataTool(BaseTool):
             response = requests.get(robots_url, headers=self.headers, timeout=5)
             if response.status_code == 200:
                 robots_txt = response.text
-                parsed = self.parse_robots_txt(robots_txt)
+                rp = RobotFileParser()
+                rp.parse(robots_txt.splitlines())
                 # Check if the user agent is allowed
-                return parsed.can_fetch('*', base_url)
+                return rp.can_fetch(self.headers['User-Agent'], base_url)
             # If robots.txt is not found, assume allowed
             return True
         except requests.exceptions.RequestException:
             # Assume allowed if robots.txt is not accessible
             return True
-
-    def parse_robots_txt(self, robots_txt):
-        from urllib.robotparser import RobotFileParser
-        rp = RobotFileParser()
-        rp.parse(robots_txt.splitlines())
-        return rp
 
     def crawl_site(self, base_url, current_url, depth, extracted_texts):
         """Recursively crawl the site to a certain depth."""

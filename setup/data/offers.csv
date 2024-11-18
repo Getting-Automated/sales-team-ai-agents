@@ -1,0 +1,36 @@
+Offer ID,Offer Name,Category,Description,Key Benefits,Industry Fit,Customization Options,Target Client Type
+O002,Intelligent Policy Data Extraction & Analysis Platform,Policy Management,"Advanced AI system specializing in automated extraction and analysis of insurance policies. The platform automatically identifies and extracts key data points from new policies, compares them against historical policies, and seamlessly integrates this data into your existing systems.
+
+Key Features:
+• Automated extraction of coverage details, limits, exclusions, and endorsements
+• Year-over-year policy comparison highlighting key changes and potential gaps
+• Bulk processing of hundreds of policies with 95%+ accuracy
+• Structured data output compatible with major insurance platforms
+• Historical policy tracking and change management
+• Multi-carrier template recognition and standardization","- Reduces policy processing time from hours to minutes per policy
+- Automatically identifies changes between policy renewals
+- Flags coverage gaps, limit changes, and new exclusions
+- Standardizes data across different carrier formats and policy types
+- Enables bulk import of policy data into existing systems
+- Creates searchable database of policy terms and conditions
+- Maintains audit trail of policy changes over time
+- Generates automated renewal comparison reports
+- Provides API access for real-time data integration
+- Supports compliance tracking and reporting requirements","Insurance Brokers
+Employee Benefits Companies
+Insurance Agencies
+Third-Party Administrators
+Risk Management Firms
+MGAs/MGUs
+Wholesale Brokers","- Custom extraction templates for specific carriers or policy types
+- Configurable data mapping to your existing systems
+- Custom comparison rules and change thresholds
+- API integration with major insurance platforms:
+  • Applied Epic
+  • Vertafore AMS360
+  • Salesforce
+  • Custom CRM systems
+- Automated workflow rules based on policy changes
+- Custom report templates for different stakeholders
+- Multi-tenant access controls
+- White-labeled client portal options","Mid-size Staffing,Enterprise Staffing,Healthcare Staffing"

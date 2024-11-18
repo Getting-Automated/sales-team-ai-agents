@@ -5,3 +5,6 @@ pyairtable
 requests
 praw
 python-dotenv
+tldextract
+beautifulsoup4
+requests

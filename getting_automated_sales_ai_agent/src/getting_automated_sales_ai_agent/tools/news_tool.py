@@ -1,12 +1,18 @@
 # tools/news_tool.py
 
 from crewai.tools import BaseTool
+from pydantic import Field, BaseModel
 import os
 import requests
+from typing import Type
+
+class NewsToolArgs(BaseModel):
+    industry_keywords: str = Field(description="Keywords to search for news articles")
 
 class NewsTool(BaseTool):
-    name = "news_tool"
-    description = "Retrieves industry news articles using NewsAPI.org."
+    name: str = "news_tool"
+    description: str = "Retrieves industry news articles using NewsAPI.org."
+    args_schema: Type[BaseModel] = NewsToolArgs
 
     def _run(self, industry_keywords: str) -> list:
         """Fetch news articles for the given industry keywords."""

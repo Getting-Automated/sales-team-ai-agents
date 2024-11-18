@@ -1,16 +1,27 @@
 # tools/airtable_tool.py
 
 from crewai.tools import BaseTool
+from pydantic import Field, BaseModel
 import os
 from pyairtable import Table
+from typing import Optional, Dict, Any, Type
+
+class AirtableToolArgs(BaseModel):
+    action: str = Field(description="CRUD action to perform (create, update, retrieve, list)")
+    table_name: str = Field(description="Name of the Airtable table")
+    data: Optional[Dict[str, Any]] = Field(default=None, description="Data for create/update operations")
+    record_id: Optional[str] = Field(default=None, description="Record ID for update/retrieve operations")
 
 class AirtableTool(BaseTool):
-    name = "airtable_tool"
-    description = "Interacts with Airtable for data storage and retrieval."
+    name: str = "airtable_tool"
+    description: str = "Interacts with Airtable for data storage and retrieval."
+    args_schema: Type[BaseModel] = AirtableToolArgs
+    
+    api_key: str = Field(default_factory=lambda: os.getenv('AI_AGENT_AIRTABLE_API_KEY'))
+    base_id: str = Field(default_factory=lambda: os.getenv('AIRTABLE_BASE_ID'))
 
-    def __init__(self):
-        self.api_key = os.getenv('AI_AGENT_AIRTABLE_API_KEY')
-        self.base_id = os.getenv('AIRTABLE_BASE_ID')
+    class Config:
+        arbitrary_types_allowed = True
 
     def _run(self, action: str, table_name: str, data: dict = None, record_id: str = None) -> dict:
         """Perform CRUD operations on Airtable."""

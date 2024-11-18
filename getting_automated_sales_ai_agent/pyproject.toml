@@ -1,11 +1,19 @@
 [project]
 name = "getting_automated_sales_ai_agent"
 version = "0.1.0"
-description = "latest-ai-development using crewAI"
-authors = [{ name = "Your Name", email = "you@example.com" }]
+description = "getting_automated_sales_ai_agent using crewAI"
+authors = [{ name = "Hunter Sneed", email = "hunter@gettingautomated.com" }]
 requires-python = ">=3.10,<=3.13"
 dependencies = [
-    "crewai[tools]>=0.80.0,<1.0.0"
+    "crewai[tools]>=0.80.0,<1.0.0",  
+    "tldextract",
+    "beautifulsoup4",
+    "requests",
+    "praw",           # For Reddit API
+    "pyairtable",     # For Airtable API
+    "openai",         # For OpenAI API
+    "newsapi-python", # For News API
+    "langchain-community"
 ]
 
 [project.scripts]

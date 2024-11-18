@@ -1,12 +1,19 @@
 # tools/reddit_tool.py
 
 from crewai.tools import BaseTool
+from pydantic import Field, BaseModel
 import os
 import praw
+from typing import Type, List
+
+class RedditToolArgs(BaseModel):
+    subreddit_list: List[str] = Field(description="List of subreddits to search")
+    industry_keywords: str = Field(description="Keywords to search for in Reddit posts")
 
 class RedditTool(BaseTool):
-    name = "reddit_tool"
-    description = "Retrieves Reddit discussions using PRAW."
+    name: str = "reddit_tool"
+    description: str = "Retrieves Reddit discussions using PRAW."
+    args_schema: Type[BaseModel] = RedditToolArgs
 
     def _run(self, subreddit_list: list, industry_keywords: str) -> list:
         """Fetch Reddit posts from given subreddits and keywords."""

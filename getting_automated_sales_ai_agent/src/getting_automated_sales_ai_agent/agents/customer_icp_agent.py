@@ -1,9 +1,10 @@
 # agents/customer_icp_agent.py
 
 from crewai import Agent, LLM
-from tools.proxycurl_tool import ProxycurlTool
-from tools.company_data_tool import CompanyDataTool
-from tools.airtable_tool import AirtableTool
+from langchain_community.llms import OpenAI
+from ..tools.proxycurl_tool import ProxycurlTool
+from ..tools.company_data_tool import CompanyDataTool
+from ..tools.airtable_tool import AirtableTool
 import os
 import json
 
@@ -58,34 +59,58 @@ As an expert sales analyst, evaluate the following lead against our Ideal Custom
 **Customer ICP:**
 {json.dumps(customer_icp, indent=2)}
 
-**Individual Profile:**
-{json.dumps(individual_profile, indent=2)}
+**Lead Profile:**
+- Name: {lead.get('name')}
+- Role: {lead.get('role')}
+- Seniority: {lead.get('seniority')}
+- Departments: {lead.get('departments')}
+- Location: {lead.get('location')}
 
-**Company Profile:**
-{json.dumps(company_profile, indent=2)}
+**Company Details:**
+- Company: {lead.get('company')}
+- Industry: {lead.get('industry')}
+- Company Size: {lead.get('company_size')} employees
+- Annual Revenue: {lead.get('annual_revenue')}
+- Technologies Used: {lead.get('technologies')}
+- Focus Areas: {lead.get('keywords')}
+- Company Description: {lead.get('seo_description')}
+
+**Online Presence:**
+- LinkedIn: {lead.get('linkedin_url')}
+- Company LinkedIn: {lead.get('company_linkedin')}
+- Company Website: {lead.get('company_website')}
 
 **Evaluation Instructions:**
-- **Job Level:** Does the lead's job title match any of the specified job levels?
-- **Technical Expertise:** Is the lead technical or non-technical?
-- **Department:** Is the lead part of the specified departments?
-- **Company Technologies:** Does the company use or show interest in the specified technologies?
-- **Company Challenges:** Is the company facing any of the specified challenges?
+1. ICP Alignment:
+   - Job Level Match: {customer_icp.get('job_levels', [])}
+   - Department Match: {customer_icp.get('departments', [])}
+   - Company Size Match: {customer_icp.get('company_size', [])}
+   - Industry Match: {customer_icp.get('industries', [])}
 
-**Provide a comprehensive analysis considering the above points.**
+2. Technical Analysis:
+   - Evaluate their tech stack compatibility
+   - Identify potential integration points
+   - Assess technical maturity
 
-**Response Format:**
-{{
-    "lead_score": ...,        # Integer between 0 and 100
-    "lead_tier": "...",       # "High", "Medium", or "Low"
-    "justification": "...",   # Detailed explanation of the evaluation
-    "matching_criteria": {{   # Details of which criteria matched
-        "job_level": "...",
-        "technical_expertise": "...",
-        "department": "...",
-        "company_technologies": "...",
-        "company_challenges": "..."
-    }}
-}}
+3. Business Context:
+   - Analyze company scale and growth indicators
+   - Identify potential pain points based on industry and size
+   - Evaluate decision-making authority
+
+Please provide a structured analysis in JSON format:
+{
+    "lead_score": 1-10,
+    "lead_tier": "A/B/C",
+    "justification": "Detailed explanation",
+    "matching_criteria": ["list", "of", "matching", "criteria"],
+    "technical_fit": {
+        "score": 1-10,
+        "analysis": "Technical stack analysis"
+    },
+    "pain_points": ["Likely", "pain", "points"],
+    "recommended_approach": "Specific approach based on analysis",
+    "next_steps": ["Prioritized", "next", "steps"]
+}
 """
 
         # Analyze profiles using the agent's LLM
@@ -102,16 +127,23 @@ As an expert sales analyst, evaluate the following lead against our Ideal Custom
 
         # Prepare data for Airtable
         lead_data = {
-            'Name': individual_profile.get('full_name') or individual_profile.get('name'),
-            'Email': individual_profile.get('email'),
-            'Company': individual_profile.get('company', {}).get('name') or individual_profile.get('company_name'),
-            'Role': individual_profile.get('occupation') or individual_profile.get('role'),
+            'Name': lead.get('name'),
+            'Email': lead.get('email'),
+            'Company': lead.get('company'),
+            'Role': lead.get('role'),
             'LeadScore': analysis.get('lead_score'),
             'LeadTier': analysis.get('lead_tier'),
             'Justification': analysis.get('justification'),
             'MatchingCriteria': analysis.get('matching_criteria'),
-            'EnrichedIndividualProfile': individual_profile,
-            'EnrichedCompanyProfile': company_profile,
+            'TechnicalFit': analysis.get('technical_fit'),
+            'PainPoints': analysis.get('pain_points'),
+            'RecommendedApproach': analysis.get('recommended_approach'),
+            'NextSteps': analysis.get('next_steps'),
+            'CompanySize': lead.get('company_size'),
+            'Technologies': lead.get('technologies'),
+            'AnnualRevenue': lead.get('annual_revenue'),
+            'Location': lead.get('location'),
+            'EnrichedProfile': json.dumps(lead)
         }
 
         # Store data in Airtable using AirtableTool

@@ -8,12 +8,65 @@ from config.airtable_config import (
     TABLE_SCHEMAS, 
     SAMPLE_DATA
 )
+import argparse
+from pyairtable import Table, Api
+import sys
 
 # Load environment variables
 load_dotenv()
-
-# Airtable configuration
 API_KEY = os.getenv('AI_AGENT_AIRTABLE_API_KEY')
+
+def delete_base(base_id):
+    """Deletes an existing Airtable base"""
+    print(f"Deleting base {base_id}...")
+    
+    url = f"https://api.airtable.com/v0/meta/bases/{base_id}"
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        response = requests.delete(url, headers=headers)
+        if response.status_code in [200, 204]:
+            print(f"Base {base_id} deleted successfully")
+            return True
+        else:
+            print(f"Failed to delete base: {response.text}")
+            return False
+    except Exception as e:
+        print(f"Error deleting base: {str(e)}")
+        return False
+
+def list_bases(workspace_id):
+    """Lists all bases in a workspace"""
+    print(f"Listing bases in workspace {workspace_id}...")
+    
+    url = f"https://api.airtable.com/v0/meta/workspaces/{workspace_id}/bases"
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            bases = response.json().get('bases', [])
+            return bases
+        else:
+            print(f"Failed to list bases: {response.text}")
+            return []
+    except Exception as e:
+        print(f"Error listing bases: {str(e)}")
+        return []
+
+def find_base_by_name(workspace_id, base_name):
+    """Finds a base by name in the workspace"""
+    bases = list_bases(workspace_id)
+    for base in bases:
+        if base.get('name') == base_name:
+            return base.get('id')
+    return None
 
 def create_workspace(name="AI Sales Workspace"):
     """Creates a new Airtable workspace"""
@@ -180,19 +233,63 @@ def create_base(workspace_id, base_name):
         print(f"Error creating base: {str(e)}")
         raise
 
+def get_existing_base_id():
+    """Get ID of existing base"""
+    api = Api(API_KEY)
+    bases = api.workspace(WORKSPACE_ID).list_bases()
+    
+    for base in bases:
+        if base['name'] == BASE_NAME:
+            return base['id']
+    return None
+
 def main():
-    """Main initialization function"""
+    """Main initialization function with delete/recreate capability"""
+    parser = argparse.ArgumentParser(description='Initialize or reinitialize Airtable base')
+    parser.add_argument('--force', action='store_true', 
+                      help='Force delete and recreate if base exists')
+    parser.add_argument('--delete-only', action='store_true',
+                      help='Only delete the existing base without recreating')
+    parser.add_argument('--get-base-id', action='store_true',
+                      help='Get the ID of the existing base')
+    args = parser.parse_args()
+
+    if args.get_base_id:
+        base_id = get_existing_base_id()
+        if base_id:
+            print(base_id)
+            return base_id
+        else:
+            sys.exit(1)
+    
     print("Starting Airtable initialization...\n")
     
-    # Verify API key
     if not API_KEY:
         raise ValueError("AI_AGENT_AIRTABLE_API_KEY not found in environment variables")
     
     try:
-        # Create base using workspace ID from config
+        # Check if base already exists
+        existing_base_id = find_base_by_name(WORKSPACE_ID, BASE_NAME)
+        
+        if existing_base_id:
+            print(f"Found existing base: {existing_base_id}")
+            if args.force or args.delete_only:
+                if delete_base(existing_base_id):
+                    print("Existing base deleted successfully")
+                else:
+                    raise Exception("Failed to delete existing base")
+                    
+                if args.delete_only:
+                    print("Delete-only operation completed")
+                    return None
+            else:
+                print("Base already exists. Use --force to delete and recreate, or --delete-only to just delete")
+                return existing_base_id
+        
+        # Create new base
         base_id = create_base(WORKSPACE_ID, BASE_NAME)
         
-        # Initialize tables
+        # Initialize tables with sample data
         for table_name in TABLE_SCHEMAS.keys():
             initialize_table(table_name, base_id)
         
@@ -209,3 +306,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# Normal initialization (only creates if doesn't exist): python airtable_initialization.py
+# Force delete and recreate: python airtable_initialization.py --force
+# Delete only (if you just want to remove the base): python airtable_initialization.py --delete-only

@@ -1,7 +1,9 @@
 # agents/solution_templates_agent.py
 
-from crewai import Agent, LLM
-from tools.airtable_tool import AirtableTool
+from crewai import Agent
+from langchain_community.llms import OpenAI
+from ..tools.airtable_tool import AirtableTool
+from ..tools.openai_tool import OpenAITool
 import os
 import json
 

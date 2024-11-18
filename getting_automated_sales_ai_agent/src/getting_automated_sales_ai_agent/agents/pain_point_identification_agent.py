@@ -1,9 +1,11 @@
 # agents/pain_point_agent.py
 
-from crewai import Agent, LLM
-from tools.news_tool import NewsTool
-from tools.reddit_tool import RedditTool
-from tools.airtable_tool import AirtableTool
+from crewai import Agent
+from langchain_community.llms import OpenAI
+from ..tools.news_tool import NewsTool
+from ..tools.reddit_tool import RedditTool
+from ..tools.openai_tool import OpenAITool
+from ..tools.airtable_tool import AirtableTool
 import os
 import json
 
