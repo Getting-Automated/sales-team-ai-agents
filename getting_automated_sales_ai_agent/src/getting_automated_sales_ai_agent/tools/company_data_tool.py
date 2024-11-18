@@ -10,6 +10,7 @@ import time
 from urllib.parse import urljoin, urlparse
 import json
 from urllib.robotparser import RobotFileParser
+from openai import OpenAI
 
 class CompanyDataToolArgs(BaseModel):
     domain: str = Field(description="The domain to crawl")
@@ -19,7 +20,6 @@ class CompanyDataTool(BaseTool):
     description: str = "Crawls the company's website to extract relevant information."
     llm: Any = Field(description="LLM instance to use for text analysis")
     args_schema: Type[BaseModel] = CompanyDataToolArgs
-
     visited_urls: set = Field(default_factory=set)
     max_depth: int = 2
     max_pages: int = 20
@@ -28,42 +28,93 @@ class CompanyDataTool(BaseTool):
                       'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15A372 '
                       'Safari/604.1'
     })
+    client: OpenAI = Field(default_factory=lambda: OpenAI())
 
     class Config:
         arbitrary_types_allowed = True
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def _run(self, domain: str) -> dict:
         """Fetch and analyze company data from the company's website."""
-        # Validate domain
-        if not domain:
-            return {"error": "No domain provided."}
+        print(f"Starting analysis of domain: {domain}")
+        
+        try:
+            # Clean up domain if it's a full URL
+            if domain.startswith(('http://', 'https://')):
+                parsed = urlparse(domain)
+                domain = parsed.netloc or parsed.path
+            
+            # Validate domain
+            if not domain:
+                print("Error: No domain provided")
+                return {"error": "No domain provided."}
 
-        # Prepare base URL
-        domain_info = tldextract.extract(domain)
-        if not domain_info.domain:
-            return {"error": "Invalid domain provided."}
+            # Prepare base URL
+            domain_info = tldextract.extract(domain)
+            if not domain_info.domain:
+                print("Error: Invalid domain provided")
+                return {"error": "Invalid domain provided."}
 
-        base_url = f"https://{domain_info.domain}.{domain_info.suffix}"
+            base_url = f"https://{domain_info.domain}.{domain_info.suffix}"
+            print(f"Base URL: {base_url}")
 
-        # Check robots.txt
-        if not self.is_allowed_by_robots(base_url):
-            return {"error": f"Crawling is disallowed by robots.txt for {base_url}"}
+            # Check robots.txt
+            if not self.is_allowed_by_robots(base_url):
+                print(f"Warning: Crawling is disallowed by robots.txt for {base_url}")
+                return {"error": f"Crawling is disallowed by robots.txt for {base_url}"}
 
-        # Start crawling from the base URL
-        self.visited_urls = set()
-        extracted_texts = []
-        self.crawl_site(base_url, base_url, 0, extracted_texts)
+            # Reset visited URLs for this domain
+            self.visited_urls = set()
+            extracted_texts = []
+            
+            # Start with the homepage
+            response = requests.get(base_url, headers=self.headers, timeout=10)
+            if response.status_code != 200:
+                return {"error": f"Failed to access homepage: {response.status_code}"}
 
-        if not extracted_texts:
-            return {"error": "No content extracted from the website."}
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Get homepage content
+            extracted_texts = [soup.get_text(separator=' ', strip=True)]
+            print("Extracted homepage content")
 
-        # Combine all extracted texts
-        combined_text = ' '.join(extracted_texts)
+            # Get important links to crawl
+            important_urls = self.get_important_links(soup, base_url)
+            print(f"Selected {len(important_urls)} important pages to analyze")
 
-        # Use the LLM to extract structured company data
-        company_data = self.extract_company_data_with_llm(combined_text)
+            # Crawl selected pages
+            for url in important_urls:
+                try:
+                    print(f"Analyzing important page: {url}")
+                    response = requests.get(url, headers=self.headers, timeout=10)
+                    if response.status_code == 200:
+                        soup = BeautifulSoup(response.content, 'html.parser')
+                        text = soup.get_text(separator=' ', strip=True)
+                        extracted_texts.append(text)
+                        print(f"Successfully extracted content from {url}")
+                    time.sleep(1)  # Politeness delay
+                except Exception as e:
+                    print(f"Error fetching {url}: {str(e)}")
+                    continue
 
-        return company_data
+            if not extracted_texts:
+                return {"error": "No content extracted from the website"}
+
+            # Combine all extracted texts
+            combined_text = ' '.join(extracted_texts)
+            print(f"Extracted content from {len(extracted_texts)} pages")
+
+            # Use the LLM to extract structured company data
+            company_data = self.extract_company_data_with_llm(combined_text)
+            print("Completed company data extraction")
+
+            return company_data
+            
+        except Exception as e:
+            print(f"Error analyzing domain {domain}: {str(e)}")
+            return {"error": f"Analysis error: {str(e)}"}
 
     def is_allowed_by_robots(self, base_url):
         """Check if crawling is allowed by robots.txt."""
@@ -74,104 +125,122 @@ class CompanyDataTool(BaseTool):
                 robots_txt = response.text
                 rp = RobotFileParser()
                 rp.parse(robots_txt.splitlines())
-                # Check if the user agent is allowed
                 return rp.can_fetch(self.headers['User-Agent'], base_url)
-            # If robots.txt is not found, assume allowed
             return True
         except requests.exceptions.RequestException:
-            # Assume allowed if robots.txt is not accessible
+            print(f"Warning: Could not access robots.txt for {base_url}")
             return True
 
-    def crawl_site(self, base_url, current_url, depth, extracted_texts):
-        """Recursively crawl the site to a certain depth."""
-        if depth > self.max_depth or len(self.visited_urls) >= self.max_pages:
-            return
-
-        try:
-            response = requests.get(current_url, headers=self.headers, timeout=10)
-            if response.status_code != 200:
-                return
-
-            soup = BeautifulSoup(response.content, 'html.parser')
-            text = soup.get_text(separator=' ', strip=True)
-            extracted_texts.append(text)
-
-            self.visited_urls.add(current_url)
-
-            # Find all internal links
-            for link_tag in soup.find_all('a', href=True):
-                href = link_tag['href']
-                full_url = urljoin(base_url, href)
-                parsed_url = urlparse(full_url)
-
-                # Check if the link is within the same domain
-                if parsed_url.netloc != urlparse(base_url).netloc:
-                    continue
-
-                # Avoid re-visiting URLs
-                if full_url in self.visited_urls:
-                    continue
-
-                # Only crawl HTTP and HTTPS URLs
-                if parsed_url.scheme not in ['http', 'https']:
-                    continue
-
-                # Politeness delay
-                time.sleep(1)
-
-                # Recursively crawl the next page
-                self.crawl_site(base_url, full_url, depth + 1, extracted_texts)
-
-                if len(self.visited_urls) >= self.max_pages:
-                    break
-
-        except requests.exceptions.RequestException as e:
-            self.logger.warning(f"Failed to fetch {current_url}: {e}")
-            return
-
     def extract_company_data_with_llm(self, text_content):
-        """Use the LLM to extract structured company data from text content."""
-        # Prepare the prompt
-        prompt = f"""
-As an AI language model, you are tasked with extracting key company information from the following text:
-
-{text_content}
-
-Extract the following information if available:
-- Company Name
-- Industry
-- Description
-- Products and Services
-- Technologies Used
-- Company Size (number of employees)
-- Headquarters Location
-- Mission and Vision
-- Key Clients or Partners
-
-Provide the extracted information in JSON format, including only the fields you can find:
-
-{{
-    "company_name": "...",
-    "industry": "...",
-    "description": "...",
-    "products_and_services": ["..."],
-    "technologies_used": ["..."],
-    "company_size": "...",
-    "headquarters_location": "...",
-    "mission": "...",
-    "vision": "...",
-    "key_clients_or_partners": ["..."]
-}}
-"""
-        # Use the LLM to process the prompt
+        """Use OpenAI directly to extract structured company data."""
         try:
-            llm_response = self.llm.complete(prompt)
-            # Parse the JSON output
-            json_start = llm_response.find('{')
-            json_end = llm_response.rfind('}') + 1
-            company_data_json = llm_response[json_start:json_end]
-            company_data = json.loads(company_data_json)
-            return company_data
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",  # or your preferred model
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a data extraction specialist. Extract company information in JSON format."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"""
+                        Extract key company information from this text in JSON format:
+
+                        {text_content}
+
+                        Return ONLY a valid JSON object with these fields (if found):
+                        - company_name
+                        - industry
+                        - description
+                        - products_and_services (as array)
+                        - technologies_used (as array)
+                        - company_size
+                        - headquarters_location
+                        - mission
+                        - vision
+                        - key_clients_or_partners (as array)
+                        """
+                    }
+                ],
+                response_format={ "type": "json_object" }  # Ensure JSON response
+            )
+            
+            return json.loads(response.choices[0].message.content)
+            
         except Exception as e:
-            self.logger.error(f"LLM processing error: {e}")
-            return {"error": f"LLM processing error: {e}"}
+            print(f"Error processing with OpenAI: {str(e)}")
+            return {"error": f"OpenAI processing error: {str(e)}"}
+
+    def get_important_links(self, soup, base_url):
+        """Use OpenAI directly to identify important links."""
+        try:
+            # Get all links and their surrounding text
+            link_data = []
+            all_links = soup.find_all('a', href=True)
+            print(f"\nFound {len(all_links)} total links on the page")
+            
+            for link in all_links:
+                href = link.get('href', '')
+                full_url = urljoin(base_url, href)
+                
+                # Skip external links and non-http(s) links
+                parsed_url = urlparse(full_url)
+                if (parsed_url.netloc != urlparse(base_url).netloc or
+                    parsed_url.scheme not in ['http', 'https']):
+                    continue
+                
+                # Get context around the link
+                context = link.get_text(strip=True)
+                parent_text = link.parent.get_text(strip=True)[:200]
+                
+                if context:  # Only add links with visible text
+                    link_data.append({
+                        "url": full_url,
+                        "text": context,
+                        "context": parent_text
+                    })
+                    print(f"Found link: {context} -> {full_url}")
+
+            print(f"\nFiltered to {len(link_data)} internal links with text")
+
+            if not link_data:
+                print("No valid links found for analysis")
+                return []
+
+            print("\nSending links to OpenAI for analysis...")
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """You are an expert at identifying valuable company information pages.
+                        Select the most important links that are likely to contain key company information.
+                        Focus on pages like: About Us, Products/Services, Company Info, Leadership, Contact."""
+                    },
+                    {
+                        "role": "user",
+                        "content": f"""
+                        Analyze these links from {base_url} and return a JSON object with an array of the most important URLs
+                        that would contain valuable company information. Consider the link text and surrounding context.
+                        
+                        Link data:
+                        {json.dumps(link_data, indent=2)}
+                        
+                        Return format:
+                        {{
+                            "urls": ["url1", "url2", "url3", "url4", "url5"]
+                        }}
+                        
+                        Include any URLs that might contain company
+                        """
+                    }
+                ],
+                response_format={ "type": "json_object" }
+            )
+            
+            result = json.loads(response.choices[0].message.content)
+            return result.get("urls", [])  # Expect a JSON object with "urls" array
+
+        except Exception as e:
+            print(f"Error selecting important links: {str(e)}")
+            return []

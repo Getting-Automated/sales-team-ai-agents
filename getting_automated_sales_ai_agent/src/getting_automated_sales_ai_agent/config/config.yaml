@@ -1,46 +1,68 @@
 # config/config.yaml
 
 customer_icp:
-  industry: Technology
-  company_size: 50-500 employees
-  revenue: Over $10 million
-  location: North America
-  other_criteria: Interested in AI solutions
-  job_levels:
-    - Manager
-    - Director
-    - VP
-    - C-Level
-  technical_expertise:
-    - Technical
-    - Non-Technical
-  departments:
-    - Engineering
-    - Marketing
-    - Sales
+  overview: |
+    Mid to large staffing firms experiencing growth challenges. They typically struggle 
+    with manual processes, data silos, and scaling operations efficiently. Looking to 
+    modernize their tech stack and improve operational efficiency.
 
-use_case_type:
-  - UseCaseA
-  - UseCaseB
+  scoring_criteria:
+    company_website_indicators:
+      weight: 0.4
+      factors:
+        product_alignment:
+          high: ["HR software", "ATS", "Recruiting platform"]
+          medium: ["CRM", "Business software"]
+          low: ["Unrelated products"]
+        tech_stack:
+          high: ["Modern tech stack", "API mentions", "Integration focus"]
+          medium: ["Basic tech presence"]
+          low: ["No tech indicators"]
+        market_focus:
+          high: ["Enterprise", "Mid-market"]
+          medium: ["SMB"]
+          low: ["Individual consumers"]
+    
+    role_seniority:
+      weight: 0.3
+      high: ["Director", "VP", "C-Level", "Chief", "Head"]
+      medium: ["Manager", "Lead", "Senior"]
+      low: ["Associate", "Specialist"]
+    
+    technical_fit:
+      weight: 0.3
+      factors:
+        tech_alignment:
+          high: ["Multiple compatible systems"]
+          medium: ["Some compatible systems"]
+          low: ["No compatible systems"]
+        integration_potential:
+          high: ["API-ready", "Integration mentions"]
+          medium: ["Some technical infrastructure"]
+          low: ["Limited technical presence"]
 
-industry_keywords: Artificial Intelligence, Machine Learning, AI Trends
+  key_indicators:
+    positive:
+      - Recent funding or expansion
+      - Active digital transformation initiatives
+      - Multiple manual HR/staffing processes
+      - Current use of ATS/HRIS systems
+      - Clear decision-maker identified
+    
+    negative:
+      - Budget below minimum threshold
+      - No clear decision-maker
+      - Too small for solution value
+      - Recent major tech implementation
 
-subreddit_list:
-  - ArtificialIntelligence
-  - MachineLearning
+  target_departments:
+    - HR
+    - Recruiting
+    - Talent Acquisition
+    - Operations
+    - Technology
 
-solution_templates:
-  - Template 1 content...
-  - Template 2 content...
-
-company_info:
-  name: Your Company Name
-  products:
-    - Product A
-    - Product B
-  services:
-    - Service A
-    - Service B
-  value_propositions:
-    - We offer cutting-edge AI solutions.
-    - Our platform increases efficiency.
+  minimum_requirements:
+    company_revenue: 1000000
+    tech_stack: ["ATS", "HRIS"]
+    business_model: ["B2B", "B2B2C"]

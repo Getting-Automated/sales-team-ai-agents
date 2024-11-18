@@ -72,6 +72,9 @@ def load_config():
             'api_key': os.getenv('AIRTABLE_API_KEY'),
             'base_id': os.getenv('AIRTABLE_BASE_ID')
         },
+        'proxycurl': {
+            'api_key': os.getenv('PROXYCURL_API_KEY')
+        },
         'reddit': {
             'client_id': os.getenv('REDDIT_CLIENT_ID'),
             'client_secret': os.getenv('REDDIT_CLIENT_SECRET'),

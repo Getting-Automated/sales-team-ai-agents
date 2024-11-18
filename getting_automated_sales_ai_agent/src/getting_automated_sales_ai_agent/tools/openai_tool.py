@@ -16,7 +16,7 @@ class OpenAITool(BaseTool):
             return "OpenAI API key not found."
         openai.api_key = api_key
         response = openai.Completion.create(
-            engine='gpt-4',  # Or use 'text-davinci-003' for GPT-3
+            engine='gpt-4o-mini',  # Or use 'text-davinci-003' for GPT-3
             prompt=prompt,
             max_tokens=max_tokens,
             temperature=temperature,

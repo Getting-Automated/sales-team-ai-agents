@@ -1,209 +1,39 @@
-# Updated CrewAI Configuration File with Enhanced CustomerICPAgent
-
 agents:
-  - name: CustomerICPAgent
-    description: Analyzes both the individual lead and their company to assign a comprehensive score determining fit for the target market.
+  customer_icp:
+    role: "Customer ICP Agent"
+    goal: "Analyze leads based on provided Customer ICP and assign scores"
+    backstory: "You're an experienced sales analyst specializing in evaluating potential leads for market fit. You always enrich lead data using available tools like proxycurl_tool before analysis to ensure comprehensive evaluation."
+    llm: openai/gpt-4o-mini
     tools:
-      - ProxycurlAPI
-      - OpenAIAPI
-      - CompanyDataAPI (e.g., ClearbitAPI)
-      - Airtable
-    functions:
-      - Retrieve LinkedIn profile data of the individual using Proxycurl's API.
-      - Retrieve company data using a Company Data API.
-      - Analyze qualitative information about the individual and the company using OpenAI's API.
-      - Score leads based on combined individual and company criteria.
-      - Store enriched profiles and scores in Airtable.
-    inputs:
-      - LinkedInProfileURL
-    outputs:
-      - LeadScore
-      - LeadTier
-      - EnrichedIndividualProfile
-      - EnrichedCompanyProfile
-    interactions:
-      - sends_to:
-          - OfferResearcherCreatorAgent
+      - proxycurl_tool
+      - company_data_tool
+      - airtable_tool
 
-  - name: PainPointIdentificationAgent
-    description: Identifies common industry pain points through analysis of news and online discussions.
+  pain_point:
+    role: "Pain Point Identification Agent"
+    goal: "Identify industry pain points using provided keywords"
+    backstory: "You're a market researcher adept at uncovering industry trends and challenges."
     tools:
-      - GoogleNewsAPI
-      - RedditAPI
-      - OpenAIAPI
-      - Airtable
-    functions:
-      - Retrieve recent industry news articles via Google News API.
-      - Capture relevant Reddit discussions using Reddit API.
-      - Use OpenAI's API for sentiment analysis, keyword extraction, and summarization.
-      - Store pain point data in Airtable.
-    inputs:
-      - IndustryKeywords
-    outputs:
-      - WeeklyPainPointSummary
-      - TopPainPointKeywords
-      - ContextualQuotes
-    interactions:
-      - sends_to:
-          - OfferResearcherCreatorAgent
-          - SolutionTemplatesAgent
+      - news_tool
+      - reddit_tool
+      - airtable_tool
 
-  - name: SolutionTemplatesAgent
-    description: Matches pain points with solution templates, generating a starting point for custom offers.
+  solution_templates:
+    role: "Solution Templates Agent"
+    goal: "Customize solution templates based on identified pain points"
+    backstory: "You're a solutions architect with expertise in tailoring offerings to meet client needs."
     tools:
-      - AirtableTemplateLibrary
-      - OpenAIAPI (Optional)
-      - Airtable
-    functions:
-      - Access solution templates from Airtable.
-      - Adapt templates using identified pain points and keywords.
-      - Store customized templates in Airtable.
-    inputs:
-      - PainPoints
-      - Keywords
-    outputs:
-      - CustomizedSolutionTemplates
-      - SolutionVariants
-    interactions:
-      - sends_to:
-          - OfferResearcherCreatorAgent
+      - airtable_tool
 
-  - name: OfferResearcherCreatorAgent
-    description: Generates personalized offers and email drafts using data from all previous agents.
+  offer_creator:
+    role: "Offer Researcher & Creator Agent"
+    goal: "Generate personalized offers and email drafts using data from other agents"
+    backstory: "You're a creative writer and strategist who specializes in crafting compelling offers."
     tools:
-      - OpenAIAPI
-      - Airtable
-    functions:
-      - Combine pain points, solution templates, enriched individual and company profiles.
-      - Generate and refine offer language and email drafts using OpenAI's API.
-      - Store offers and email drafts in Airtable.
-    inputs:
-      - CustomizedSolutionTemplates
-      - PainPoints
-      - EnrichedIndividualProfile
-      - EnrichedCompanyProfile
-    outputs:
-      - PersonalizedOfferDocument
-      - EmailDrafts
-      - OfferHighlights
-    interactions:
-      - updates:
-          - Airtable
+      - airtable_tool
 
-tools:
-  - name: ProxycurlAPI
-    type: API
-    description: Retrieves LinkedIn profile data of individuals.
-    authentication: Proxycurl_API_Key
+process:
+  type: sequential
+  verbose: true
 
-  - name: CompanyDataAPI
-    type: API
-    description: Retrieves company data (e.g., industry, size, revenue).
-    authentication: Company_Data_API_Key
-
-  - name: OpenAIAPI
-    type: API
-    description: Performs NLP tasks such as sentiment analysis, keyword extraction, summarization, and content generation.
-    authentication: OpenAI_API_Key
-
-  - name: Airtable
-    type: Database
-    description: Centralized data storage and management.
-    authentication: Airtable_API_Key
-
-  - name: GoogleNewsAPI
-    type: API
-    description: Sources industry-specific news articles.
-    authentication: Google_News_API_Key
-
-  - name: RedditAPI
-    type: API
-    description: Captures relevant discussions from Reddit.
-    authentication: Reddit_API_Credentials
-
-databases:
-  - name: Airtable
-    tables:
-      - Leads
-      - Campaign Drafts
-      - Pain Points
-      - Offers
-    schemas:
-      Leads:
-        fields:
-          - Lead ID: SingleLineText
-          - Name: SingleLineText
-          - Email: Email
-          - Company: SingleLineText
-          - Role: SingleLineText
-          - Lead Score: Number
-          - Lead Tier: SingleSelect [High, Medium, Low]
-      Campaign Drafts:
-        fields:
-          - Lead ID: SingleLineText
-          - Campaign Name: SingleLineText
-          - Campaign Tier: SingleSelect [High, Medium, Low]
-          - Sequence Position: Number
-          - Wait Time: SingleSelect [Same Day, 1 Day, 2 Days, 3 Days, 5 Days, 1 Week, 2 Weeks]
-          - Email Draft: MultilineText
-          - Status: SingleSelect [Drafted, Ready to Send, Sent, Engaged, Completed, Stopped]
-      Pain Points:
-        fields:
-          - Industry: SingleLineText
-          - Pain Points: MultilineText
-          - Keywords: MultilineText
-          - Highlighted Quotes: MultilineText
-      Offers:
-        fields:
-          - Offer ID: SingleLineText
-          - Offer Name: SingleLineText
-          - Category: SingleSelect [Time & Attendance, Payroll & Billing, Candidate Management, Client Management, Compliance, Reporting]
-          - Description: MultilineText
-          - Key Benefits: MultilineText
-          - Industry Fit: MultilineText
-          - Customization Options: MultilineText
-          - Target Client Type: MultipleSelects [Small Staffing, Mid-size Staffing, Enterprise Staffing, Healthcare Staffing, IT Staffing, Industrial Staffing]
-
-interactions:
-  - from: CustomerICPAgent
-    to:
-      - OfferResearcherCreatorAgent
-    data: [LeadScore, LeadTier, EnrichedIndividualProfile, EnrichedCompanyProfile]
-  - from: PainPointIdentificationAgent
-    to:
-      - OfferResearcherCreatorAgent
-      - SolutionTemplatesAgent
-    data: [PainPoints, Keywords, HighlightedQuotes]
-  - from: SolutionTemplatesAgent
-    to:
-      - OfferResearcherCreatorAgent
-    data: [CustomizedSolutionTemplates, SolutionVariants]
-  - from: OfferResearcherCreatorAgent
-    to:
-      - Airtable
-    data: [PersonalizedOfferDocument, EmailDrafts, OfferHighlights]
-
-schedules:
-  - agent: PainPointIdentificationAgent
-    trigger: Weekly
-    action: Retrieve and analyze new industry data
-  - agent: CustomerICPAgent
-    trigger: OnNewLead
-    action: Analyze lead and update score
-
-authentication:
-  ProxycurlAPI:
-    api_key: "your_proxycurl_api_key"
-  CompanyDataAPI:
-    api_key: "your_company_data_api_key"
-  OpenAIAPI:
-    api_key: "your_openai_api_key"
-  Airtable:
-    api_key: "your_airtable_api_key"
-    base_id: "your_airtable_base_id"
-  GoogleNewsAPI:
-    api_key: "your_google_news_api_key"
-  RedditAPI:
-    client_id: "your_reddit_client_id"
-    client_secret: "your_reddit_client_secret"
-    user_agent: "your_app_name"
+batch_size: 5

@@ -9,7 +9,7 @@ customer_icp_agent:
     You're an experienced sales analyst specializing in evaluating potential leads for market fit.
     You analyze both individual profiles and company information to determine how well they align with the provided Customer ICP, considering detailed criteria such as job level, technical expertise, and department.
   llm:
-    model: gpt-4o
+    model: gpt-4o-mini
     temperature: 0.7
     max_tokens: 1500
   verbose: true
@@ -22,7 +22,7 @@ pain_point_agent:
     You're a market researcher adept at uncovering industry trends and challenges.
     You gather data from news articles and online forums to extract valuable insights.
   llm:
-    model: gpt-4o
+    model: gpt-4o-mini
     temperature: 0.7
     max_tokens: 1500
   verbose: true
@@ -34,7 +34,7 @@ solution_templates_agent:
     You're a solutions architect with expertise in tailoring offerings to meet client needs.
     You adapt existing templates based on identified pain points and industry trends.
   llm:
-    model: gpt-4o
+    model: gpt-4o-mini
     temperature: 0.7
     max_tokens: 1500
   verbose: true
@@ -46,7 +46,7 @@ offer_creator_agent:
     You're a creative writer and strategist who specializes in crafting compelling offers.
     You combine insights from various sources to produce tailored documents.
   llm:
-    model: gpt-4o
+    model: gpt-4o-mini
     temperature: 0.7
     max_tokens: 1500
   verbose: true

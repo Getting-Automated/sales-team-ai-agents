@@ -1,0 +1,18 @@
+models:
+  # GPT-4o
+  gpt-4o:
+    input_price: 0.0025  # $2.50 per 1M tokens
+    output_price: 0.01   # $10.00 per 1M tokens
+    unit_of_tokens: 1000000
+    batch_input_price: 0.00125  # $1.25 per 1M tokens with Batch API
+    batch_output_price: 0.005   # $5.00 per 1M tokens with Batch API
+    cached_input_price: 0.00125 # $1.25 per 1M cached tokens
+  
+  # GPT-4o mini
+  gpt-4o-mini:
+    input_price: 0.00015  # $0.150 per 1M tokens
+    output_price: 0.0006  # $0.600 per 1M tokens
+    unit_of_tokens: 1000000
+    batch_input_price: 0.000075  # $0.075 per 1M tokens with Batch API
+    batch_output_price: 0.0003   # $0.300 per 1M tokens with Batch API
+    cached_input_price: 0.000075 # $0.075 per 1M cached tokens 
