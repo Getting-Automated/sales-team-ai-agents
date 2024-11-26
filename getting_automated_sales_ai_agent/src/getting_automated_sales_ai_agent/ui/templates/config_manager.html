@@ -254,30 +254,61 @@
     
         <!-- Weight Adjustment -->
         <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-            <h4 class="text-md font-medium mb-3">Scoring Weights</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h4 class="text-xl font-medium mb-4">Agent Scoring Weights</h4>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Individual Score -->
                 <div>
-                    <label class="block text-sm font-medium mb-1">Individual Profile Weight</label>
+                    <label class="block text-sm font-medium mb-1">Individual Score Weight</label>
                     <input type="range" min="0" max="100" value="25" class="w-full" id="individualWeight">
-                    <span class="text-sm text-gray-600" id="individualWeightValue">25%</span>
+                    <div class="flex justify-between mt-1">
+                        <span class="text-sm text-gray-600" id="individualWeightValue">25%</span>
+                        <span class="text-xs text-gray-500">Role alignment and decision-making authority</span>
+                    </div>
                 </div>
+
+                <!-- Company Score -->
                 <div>
-                    <label class="block text-sm font-medium mb-1">Company Profile Weight</label>
+                    <label class="block text-sm font-medium mb-1">Company Score Weight</label>
                     <input type="range" min="0" max="100" value="25" class="w-full" id="companyWeight">
-                    <span class="text-sm text-gray-600" id="companyWeightValue">25%</span>
+                    <div class="flex justify-between mt-1">
+                        <span class="text-sm text-gray-600" id="companyWeightValue">25%</span>
+                        <span class="text-xs text-gray-500">Company size, industry, and business model fit</span>
+                    </div>
                 </div>
+
+                <!-- Technical Score -->
                 <div>
-                    <label class="block text-sm font-medium mb-1">Technical Fit Weight</label>
+                    <label class="block text-sm font-medium mb-1">Technical Score Weight</label>
                     <input type="range" min="0" max="100" value="25" class="w-full" id="technicalWeight">
-                    <span class="text-sm text-gray-600" id="technicalWeightValue">25%</span>
+                    <div class="flex justify-between mt-1">
+                        <span class="text-sm text-gray-600" id="technicalWeightValue">25%</span>
+                        <span class="text-xs text-gray-500">Technical stack and integration potential</span>
+                    </div>
                 </div>
+
+                <!-- Market Score -->
                 <div>
-                    <label class="block text-sm font-medium mb-1">Market Fit Weight</label>
+                    <label class="block text-sm font-medium mb-1">Market Score Weight</label>
                     <input type="range" min="0" max="100" value="25" class="w-full" id="marketWeight">
-                    <span class="text-sm text-gray-600" id="marketWeightValue">25%</span>
+                    <div class="flex justify-between mt-1">
+                        <span class="text-sm text-gray-600" id="marketWeightValue">25%</span>
+                        <span class="text-xs text-gray-500">Market size and growth potential</span>
+                    </div>
                 </div>
             </div>
-            <p class="text-sm text-gray-500 mt-2">Note: Total weight will automatically balance to 100%</p>
+
+            <!-- Total Weight Display -->
+            <div class="mt-6 p-4 bg-white rounded-lg">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium">Total Weight</span>
+                    <span class="text-sm font-medium" id="totalWeight">100%</span>
+                </div>
+                <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div class="h-full bg-blue-600 transition-all duration-300" id="totalWeightBar" style="width: 100%"></div>
+                </div>
+                <p class="text-sm text-gray-500 mt-2">Note: Total weight will automatically balance to 100%</p>
+            </div>
         </div>
 
     <!-- Save Configuration -->
@@ -286,68 +317,7 @@
             Save Configuration
         </button>
     </div>
-        <!-- <div class="flex flex-wrap gap-4 items-center my-4">
-            <input type="text" id="templateName" placeholder="Template Name" class="border rounded px-3 py-2">
-            <button onclick="saveAsTemplate()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save as Template</button>
-            <select id="templateSelect" class="border rounded px-3 py-2">
-                <option value="">Select a template...</option>
-            </select>
-            <button onclick="loadTemplate()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Load Template</button>
-            <button onclick="exportConfiguration()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">Export Configuration</button>
-        </div>
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 class="text-2xl font-semibold mb-4">Template Management</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                -- Save Template 
-                <div>
-                    <label class="block text-sm font-medium mb-2">Template Name</label>
-                    <div class="flex items-center space-x-2">
-                        <input type="text" 
-                            class="border rounded px-3 py-2 flex-grow" 
-                            id="templateName" 
-                            placeholder="Enter template name...">
-                        <button onclick="saveAsTemplate()" 
-                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-                            Save
-                        </button>
-                    </div>
-                </div>
 
-                Load Template 
-                <div>
-                    <label class="block text-sm font-medium mb-2">Load Existing Template</label>
-                    <div class="flex items-center space-x-2">
-                        <select id="templateSelect" 
-                            class="border rounded px-3 py-2 flex-grow">
-                            <option value="">Select a template...</option>
-                        </select>
-                        <button onclick="loadTemplate()" 
-                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-                            Load
-                        </button>
-                    </div>
-                </div>
-            </div> -->
-
-            <!-- Import/Export -->
-            <!-- <div class="flex items-center space-x-4">
-                <button onclick="exportConfiguration()" 
-                    class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded flex items-center">
-                    <span>Export Configuration</span>
-                </button>
-                
-                <div class="relative">
-                    <label class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded cursor-pointer">
-                        Import Configuration
-                        <input type="file" 
-                            id="importConfig" 
-                            class="hidden" 
-                            accept=".json" 
-                            onchange="importConfiguration(event)">
-                    </label>
-                </div>
-            </div> -->
-        </div>
 </div>
     <script>
         // Helper function to show tooltips
@@ -731,10 +701,10 @@
                 scoreValues[document.getElementById('integration').value]
             ) / 2 * weights.technical;
 
-            // Market Fit Score
+            // Market Score
             const marketScore = (
-                scoreValues[document.getElementById('painPoints').value] +
-                scoreValues[document.getElementById('growth').value]
+                scoreValues[document.getElementById('marketSize').value] +
+                scoreValues[document.getElementById('growthPotential').value]
             ) / 2 * weights.market;
 
             const totalScore = (individualScore + companyScore + technicalScore + marketScore) * 100;
@@ -770,7 +740,7 @@
                             <span>${score.breakdown.technical}%</span>
                         </div>
                         <div class="flex justify-between">
-                            <span>Market Fit (${$("#marketWeight").val()}%):</span>
+                            <span>Market Alignment (${$("#marketWeight").val()}%):</span>
                             <span>${score.breakdown.market}%</span>
                         </div>
                     </div>

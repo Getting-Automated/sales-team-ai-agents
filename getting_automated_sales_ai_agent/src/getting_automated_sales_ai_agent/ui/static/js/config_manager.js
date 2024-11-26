@@ -1,95 +1,120 @@
-// Weight calculation functions
-function updateCompanyWeights() {
+// Weight management functions
+function updateWeights(event) {
     const weights = {
-        industry: parseInt($("#industryWeight").val()),
-        size: parseInt($("#sizeWeight").val()),
-        location: parseInt($("#locationWeight").val()),
-        growth: parseInt($("#growthWeight").val())
-    };
-    
-    const total = Object.values(weights).reduce((a, b) => a + b, 0);
-    const factor = 100 / total;
-    
-    // Update all weights proportionally
-    $("#industryWeight").val(Math.round(weights.industry * factor));
-    $("#sizeWeight").val(Math.round(weights.size * factor));
-    $("#locationWeight").val(Math.round(weights.location * factor));
-    $("#growthWeight").val(Math.round(weights.growth * factor));
-    
-    // Update displays
-    $("#industryWeightValue").text(Math.round(weights.industry * factor) + "%");
-    $("#sizeWeightValue").text(Math.round(weights.size * factor) + "%");
-    $("#locationWeightValue").text(Math.round(weights.location * factor) + "%");
-    $("#growthWeightValue").text(Math.round(weights.growth * factor) + "%");
-}
-
-function updateIndividualWeights() {
-    const weights = {
-        role: parseInt($("#roleWeight").val()),
-        authority: parseInt($("#authorityWeight").val()),
-        department: parseInt($("#departmentWeight").val()),
-        skills: parseInt($("#skillsWeight").val())
-    };
-    
-    const total = Object.values(weights).reduce((a, b) => a + b, 0);
-    const factor = 100 / total;
-    
-    // Update all weights proportionally
-    $("#roleWeight").val(Math.round(weights.role * factor));
-    $("#authorityWeight").val(Math.round(weights.authority * factor));
-    $("#departmentWeight").val(Math.round(weights.department * factor));
-    $("#skillsWeight").val(Math.round(weights.skills * factor));
-    
-    // Update displays
-    $("#roleWeightValue").text(Math.round(weights.role * factor) + "%");
-    $("#authorityWeightValue").text(Math.round(weights.authority * factor) + "%");
-    $("#departmentWeightValue").text(Math.round(weights.department * factor) + "%");
-    $("#skillsWeightValue").text(Math.round(weights.skills * factor) + "%");
-}
-
-function updateTechnicalWeights() {
-    const weights = {
-        techStack: parseInt($("#techStackWeight").val()),
-        integration: parseInt($("#integrationWeight").val()),
-        infrastructure: parseInt($("#infrastructureWeight").val())
-    };
-    
-    const total = Object.values(weights).reduce((a, b) => a + b, 0);
-    const factor = 100 / total;
-    
-    // Update all weights proportionally
-    $("#techStackWeight").val(Math.round(weights.techStack * factor));
-    $("#integrationWeight").val(Math.round(weights.integration * factor));
-    $("#infrastructureWeight").val(Math.round(weights.infrastructure * factor));
-    
-    // Update displays
-    $("#techStackWeightValue").text(Math.round(weights.techStack * factor) + "%");
-    $("#integrationWeightValue").text(Math.round(weights.integration * factor) + "%");
-    $("#infrastructureWeightValue").text(Math.round(weights.infrastructure * factor) + "%");
-}
-
-function updateOverallWeights() {
-    const weights = {
-        company: parseInt($("#companyWeight").val()),
         individual: parseInt($("#individualWeight").val()),
+        company: parseInt($("#companyWeight").val()),
         technical: parseInt($("#technicalWeight").val()),
         market: parseInt($("#marketWeight").val())
     };
+
+    // If a weight was changed, adjust others proportionally
+    if (event) {
+        const changedId = event.target.id;
+        const changedWeight = weights[changedId.replace("Weight", "")];
+        const remainingWeights = Object.keys(weights).filter(key => key + "Weight" !== changedId);
+        
+        const totalOtherWeights = remainingWeights.reduce((sum, key) => sum + weights[key], 0);
+        const targetTotal = 100;
+        const currentTotal = Object.values(weights).reduce((sum, val) => sum + val, 0);
+
+        if (currentTotal !== targetTotal) {
+            const adjustment = (targetTotal - changedWeight) / remainingWeights.length;
+            remainingWeights.forEach(key => {
+                weights[key] = Math.round(adjustment);
+                $("#" + key + "Weight").val(weights[key]);
+            });
+        }
+    }
+
+    // Update display values and total
+    Object.keys(weights).forEach(key => {
+        $("#" + key + "WeightValue").text(weights[key] + "%");
+    });
+
+    // Update total weight display
+    const totalWeight = Object.values(weights).reduce((sum, val) => sum + val, 0);
+    $("#totalWeight").text(totalWeight + "%");
+    $("#totalWeightBar").css("width", totalWeight + "%");
     
-    const total = Object.values(weights).reduce((a, b) => a + b, 0);
-    const factor = 100 / total;
+    // Change color based on total
+    const barColor = totalWeight === 100 ? "bg-blue-600" : "bg-red-600";
+    $("#totalWeightBar").removeClass("bg-blue-600 bg-red-600").addClass(barColor);
+}
+
+// Initialize weight sliders
+function initializeWeights() {
+    const weightIds = ["individual", "company", "technical", "market"];
     
-    // Update all weights proportionally
-    $("#companyWeight").val(Math.round(weights.company * factor));
-    $("#individualWeight").val(Math.round(weights.individual * factor));
-    $("#technicalWeight").val(Math.round(weights.technical * factor));
-    $("#marketWeight").val(Math.round(weights.market * factor));
+    // Set initial values
+    weightIds.forEach(id => {
+        const slider = $("#" + id + "Weight");
+        slider.val(25);
+        $("#" + id + "WeightValue").text("25%");
+        
+        // Add event listeners
+        slider.on("input", updateWeights);
+    });
     
-    // Update displays
-    $("#companyWeightValue").text(Math.round(weights.company * factor) + "%");
-    $("#individualWeightValue").text(Math.round(weights.individual * factor) + "%");
-    $("#technicalWeightValue").text(Math.round(weights.technical * factor) + "%");
-    $("#marketWeightValue").text(Math.round(weights.market * factor) + "%");
+    // Initialize total weight display
+    $("#totalWeight").text("100%");
+    $("#totalWeightBar").css("width", "100%");
+}
+
+// Score calculation
+function calculateScore() {
+    const weights = {
+        individual: parseInt($("#individualWeight").val()) / 100,
+        company: parseInt($("#companyWeight").val()) / 100,
+        technical: parseInt($("#technicalWeight").val()) / 100,
+        market: parseInt($("#marketWeight").val()) / 100
+    };
+
+    const scoreValues = {
+        high: 1.0,
+        medium: 0.5,
+        low: 0.25,
+        none: 0
+    };
+
+    // Individual Score
+    const individualScore = (
+        scoreValues[document.getElementById('roleAlignment').value] +
+        scoreValues[document.getElementById('decisionAuthority').value] +
+        scoreValues[document.getElementById('departmentFit').value]
+    ) / 3 * weights.individual;
+
+    // Company Score
+    const companyScore = (
+        scoreValues[document.getElementById('companySize').value] +
+        scoreValues[document.getElementById('industryFit').value] +
+        scoreValues[document.getElementById('businessModel').value]
+    ) / 3 * weights.company;
+
+    // Technical Score
+    const technicalScore = (
+        scoreValues[document.getElementById('techStack').value] +
+        scoreValues[document.getElementById('integration').value] +
+        scoreValues[document.getElementById('infrastructure').value]
+    ) / 3 * weights.technical;
+
+    // Market Score
+    const marketScore = (
+        scoreValues[document.getElementById('marketSize').value] +
+        scoreValues[document.getElementById('marketGrowth').value] +
+        scoreValues[document.getElementById('competitivePosition').value]
+    ) / 3 * weights.market;
+
+    const totalScore = (individualScore + companyScore + technicalScore + marketScore) * 100;
+
+    return {
+        total: totalScore.toFixed(1),
+        breakdown: {
+            individual: (individualScore * 100).toFixed(1),
+            company: (companyScore * 100).toFixed(1),
+            technical: (technicalScore * 100).toFixed(1),
+            market: (marketScore * 100).toFixed(1)
+        }
+    };
 }
 
 // Tag management functions
@@ -124,33 +149,14 @@ function getTags(type) {
 // Configuration management
 function getConfiguration() {
     return {
+        weights: {
+            individual: parseInt($("#individualWeight").val()),
+            company: parseInt($("#companyWeight").val()),
+            technical: parseInt($("#technicalWeight").val()),
+            market: parseInt($("#marketWeight").val())
+        },
         customer_icp: {
             profile_overview: $("#targetOverview").val(),
-            weights: {
-                company: {
-                    industry: parseInt($("#industryWeight").val()),
-                    size: parseInt($("#sizeWeight").val()),
-                    location: parseInt($("#locationWeight").val()),
-                    growth: parseInt($("#growthWeight").val())
-                },
-                individual: {
-                    role: parseInt($("#roleWeight").val()),
-                    authority: parseInt($("#authorityWeight").val()),
-                    department: parseInt($("#departmentWeight").val()),
-                    skills: parseInt($("#skillsWeight").val())
-                },
-                technical: {
-                    tech_stack: parseInt($("#techStackWeight").val()),
-                    integration: parseInt($("#integrationWeight").val()),
-                    infrastructure: parseInt($("#infrastructureWeight").val())
-                },
-                overall: {
-                    company: parseInt($("#companyWeight").val()),
-                    individual: parseInt($("#individualWeight").val()),
-                    technical: parseInt($("#technicalWeight").val()),
-                    market: parseInt($("#marketWeight").val())
-                }
-            },
             tags: {
                 industries: getTags('industry'),
                 business_models: getTags('businessModel'),
@@ -172,97 +178,109 @@ function getConfiguration() {
 }
 
 function loadConfiguration(config) {
-    if (!config || !config.customer_icp) return;
-    
-    const icp = config.customer_icp;
-    
-    // Load text fields
-    $("#targetOverview").val(icp.profile_overview || '');
-    $("#minEmployees").val(icp.minimum_requirements?.employee_count_min || '');
-    $("#maxEmployees").val(icp.minimum_requirements?.employee_count_max || '');
-    
-    // Load weights
-    if (icp.weights) {
-        const weights = icp.weights;
-        // Company weights
-        if (weights.company) {
-            $("#industryWeight").val(weights.company.industry || 25);
-            $("#sizeWeight").val(weights.company.size || 25);
-            $("#locationWeight").val(weights.company.location || 25);
-            $("#growthWeight").val(weights.company.growth || 25);
-            updateCompanyWeights();
-        }
+    if (config.weights) {
+        const { individual, company, technical, market } = config.weights;
         
-        // Individual weights
-        if (weights.individual) {
-            $("#roleWeight").val(weights.individual.role || 30);
-            $("#authorityWeight").val(weights.individual.authority || 30);
-            $("#departmentWeight").val(weights.individual.department || 20);
-            $("#skillsWeight").val(weights.individual.skills || 20);
-            updateIndividualWeights();
-        }
+        $("#individualWeight").val(individual);
+        $("#companyWeight").val(company);
+        $("#technicalWeight").val(technical);
+        $("#marketWeight").val(market);
         
-        // Technical weights
-        if (weights.technical) {
-            $("#techStackWeight").val(weights.technical.tech_stack || 40);
-            $("#integrationWeight").val(weights.technical.integration || 30);
-            $("#infrastructureWeight").val(weights.technical.infrastructure || 30);
-            updateTechnicalWeights();
-        }
-        
-        // Overall weights
-        if (weights.overall) {
-            $("#companyWeight").val(weights.overall.company || 30);
-            $("#individualWeight").val(weights.overall.individual || 30);
-            $("#technicalWeight").val(weights.overall.technical || 20);
-            $("#marketWeight").val(weights.overall.market || 20);
-            updateOverallWeights();
-        }
+        updateWeights();
     }
     
-    // Load tags
-    function loadTags(tags, type) {
-        if (!tags) return;
-        $(`#${type}Tags`).empty();
-        tags.forEach(tag => {
-            const tagHtml = `
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2 mb-2">
-                    ${tag}
-                    <button onclick="removeTag(this)" class="ml-1 text-blue-400 hover:text-blue-600">&times;</button>
-                </span>
-            `;
-            $(`#${type}Tags`).append(tagHtml);
-        });
+    if (config.customer_icp) {
+        const icp = config.customer_icp;
+        
+        // Load text fields
+        $("#targetOverview").val(icp.profile_overview || '');
+        $("#minEmployees").val(icp.minimum_requirements?.employee_count_min || '');
+        $("#maxEmployees").val(icp.minimum_requirements?.employee_count_max || '');
+        
+        // Load tags
+        function loadTags(tags, type) {
+            if (!tags) return;
+            $(`#${type}Tags`).empty();
+            tags.forEach(tag => {
+                const tagHtml = `
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2 mb-2">
+                        ${tag}
+                        <button onclick="removeTag(this)" class="ml-1 text-blue-400 hover:text-blue-600">&times;</button>
+                    </span>
+                `;
+                $(`#${type}Tags`).append(tagHtml);
+            });
+        }
+        
+        if (icp.tags) {
+            loadTags(icp.tags.industries, 'industry');
+            loadTags(icp.tags.business_models, 'businessModel');
+            loadTags(icp.tags.technologies, 'technology');
+            loadTags(icp.tags.locations, 'location');
+            loadTags(icp.tags.growth_stages, 'growthStage');
+        }
+        
+        loadTags(icp.target_departments, 'department');
+        loadTags(icp.job_titles, 'jobTitle');
+        loadTags(icp.decision_making_authority, 'authority');
+        loadTags(icp.required_skills, 'skill');
+        loadTags(icp.negative_criteria, 'negative');
     }
-    
-    if (icp.tags) {
-        loadTags(icp.tags.industries, 'industry');
-        loadTags(icp.tags.business_models, 'businessModel');
-        loadTags(icp.tags.technologies, 'technology');
-        loadTags(icp.tags.locations, 'location');
-        loadTags(icp.tags.growth_stages, 'growthStage');
+}
+
+function showResults(score) {
+    const resultsHtml = `
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-xl font-semibold mb-4">Lead Score: ${score.total}%</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span>Individual Score (${$("#individualWeight").val()}%):</span>
+                    <span>${score.breakdown.individual}%</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Company Score (${$("#companyWeight").val()}%):</span>
+                    <span>${score.breakdown.company}%</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Technical Score (${$("#technicalWeight").val()}%):</span>
+                    <span>${score.breakdown.technical}%</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Market Score (${$("#marketWeight").val()}%):</span>
+                    <span>${score.breakdown.market}%</span>
+                </div>
+            </div>
+            <div class="mt-4 p-3 ${getRecommendationClass(score.total)} rounded">
+                <span class="font-medium">Recommendation: </span>
+                ${getRecommendationText(score.total)}
+            </div>
+        </div>
+    `;
+    $("#results").html(resultsHtml);
+}
+
+function getRecommendationClass(score) {
+    if (score >= 80) return 'bg-green-100 text-green-800';
+    if (score >= 60) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
+}
+
+function getRecommendationText(score) {
+    if (score >= 80) {
+        return 'High fit - Strong alignment with ICP. Prioritize this lead.';
+    } else if (score >= 60) {
+        return 'Medium fit - Some alignment with ICP. Consider pursuing with caution.';
+    } else {
+        return 'Low fit - Significant gaps in alignment. May not be ideal target at this time.';
     }
-    
-    loadTags(icp.target_departments, 'department');
-    loadTags(icp.job_titles, 'jobTitle');
-    loadTags(icp.decision_making_authority, 'authority');
-    loadTags(icp.required_skills, 'skill');
-    loadTags(icp.negative_criteria, 'negative');
 }
 
 // Initialize everything when document is ready
 $(document).ready(function() {
-    // Initialize weight sliders
-    updateCompanyWeights();
-    updateIndividualWeights();
-    updateTechnicalWeights();
-    updateOverallWeights();
+    initializeWeights();
     
     // Add event listeners for weight changes
-    $("#industryWeight, #sizeWeight, #locationWeight, #growthWeight").on('input', updateCompanyWeights);
-    $("#roleWeight, #authorityWeight, #departmentWeight, #skillsWeight").on('input', updateIndividualWeights);
-    $("#techStackWeight, #integrationWeight, #infrastructureWeight").on('input', updateTechnicalWeights);
-    $("#companyWeight, #individualWeight, #technicalWeight, #marketWeight").on('input', updateOverallWeights);
+    $("#individualWeight, #companyWeight, #technicalWeight, #marketWeight").on('input', updateWeights);
     
     // Initialize autocomplete for all input fields
     const inputMappings = {
