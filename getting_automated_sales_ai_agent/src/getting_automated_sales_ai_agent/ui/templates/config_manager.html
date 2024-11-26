@@ -122,7 +122,79 @@
                 <div class="helper-text">Examples: CRM systems, ERP software, Cloud platforms, Industry-specific tools</div>
                 <div id="techTags" class="flex flex-wrap gap-2"></div>
             </div>
+    
+                <!-- Growth Stage -->
+        <div class="mb-6">
+            <h3 class="text-lg font-medium mb-3">Growth Stage</h3>
+            <div class="flex items-center space-x-2 mb-2">
+                <input type="text" 
+                    class="border rounded px-3 py-2 flex-grow" 
+                    id="growthStageInput" 
+                    placeholder="Type or select a growth stage..."
+                    list="growthStageList">
+                <datalist id="growthStageList">
+                    <option value="Early Stage Startup">
+                    <option value="Growth Stage Startup">
+                    <option value="Scale-up">
+                    <option value="Enterprise">
+                    <option value="Public Company">
+                    <option value="Pre-IPO">
+                </datalist>
+                <button onclick="addCustomOrSuggested('growthStageInput')" class="bg-blue-500 text-white px-4 py-2 rounded">Add</button>
+            </div>
+            <div class="helper-text">Examples: Early Stage Startup, Scale-up, Enterprise</div>
+            <div id="growthStageTags" class="flex flex-wrap gap-2"></div>
         </div>
+
+        <!-- Geographic Location -->
+        <div class="mb-6">
+            <h3 class="text-lg font-medium mb-3">Geographic Location</h3>
+            <div class="flex items-center space-x-2 mb-2">
+                <input type="text" 
+                    class="border rounded px-3 py-2 flex-grow" 
+                    id="locationInput" 
+                    placeholder="Type or select a location..."
+                    list="locationList">
+                <datalist id="locationList">
+                    <option value="North America">
+                    <option value="Europe">
+                    <option value="Asia Pacific">
+                    <option value="Latin America">
+                    <option value="United States">
+                    <option value="United Kingdom">
+                    <option value="Remote">
+                </datalist>
+                <button onclick="addCustomOrSuggested('locationInput')" class="bg-blue-500 text-white px-4 py-2 rounded">Add</button>
+            </div>
+            <div class="helper-text">Examples: North America, Europe, Remote</div>
+            <div id="locationTags" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <!-- Business Model -->
+        <div class="mb-6">
+            <h3 class="text-lg font-medium mb-3">Business Model</h3>
+            <div class="flex items-center space-x-2 mb-2">
+                <input type="text" 
+                    class="border rounded px-3 py-2 flex-grow" 
+                    id="businessModelInput" 
+                    placeholder="Type or select a business model..."
+                    list="businessModelList">
+                <datalist id="businessModelList">
+                    <option value="B2B">
+                    <option value="B2C">
+                    <option value="D2C">
+                    <option value="B2B2C">
+                    <option value="Marketplace">
+                    <option value="SaaS">
+                </datalist>
+                <button onclick="addCustomOrSuggested('businessModelInput')" class="bg-blue-500 text-white px-4 py-2 rounded">Add</button>
+            </div>
+            <div class="helper-text">Examples: B2B, B2C, D2C, SaaS</div>
+            <div id="businessModelTags" class="flex flex-wrap gap-2"></div>
+        </div>
+    
+        </div>
+
     
         <!-- Target Individual Parameters -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
@@ -153,6 +225,52 @@
                 </div>
                 <div class="helper-text">Examples: CEO, VP of Sales, Director of Operations, IT Manager</div>
                 <div id="titleTags" class="flex flex-wrap gap-2"></div>
+            </div>
+    
+            <!-- Decision Making Authority -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-3">Decision Making Authority</h3>
+                <div class="flex items-center space-x-2 mb-2">
+                    <input type="text" 
+                        class="border rounded px-3 py-2 flex-grow" 
+                        id="authorityInput" 
+                        placeholder="Type or select authority level..."
+                        list="authorityList">
+                    <datalist id="authorityList">
+                        <option value="Final Decision Maker">
+                        <option value="Key Influencer">
+                        <option value="Budget Holder">
+                        <option value="Technical Evaluator">
+                        <option value="Executive Sponsor">
+                        <option value="Recommender">
+                    </datalist>
+                    <button onclick="addCustomOrSuggested('authorityInput')" class="bg-blue-500 text-white px-4 py-2 rounded">Add</button>
+                </div>
+                <div class="helper-text">Examples: Final Decision Maker, Key Influencer, Budget Holder</div>
+                <div id="authorityTags" class="flex flex-wrap gap-2"></div>
+            </div>
+
+            <!-- Negative Criteria -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-3">Negative Criteria (Exclusions)</h3>
+                <div class="flex items-center space-x-2 mb-2">
+                    <input type="text" 
+                        class="border rounded px-3 py-2 flex-grow" 
+                        id="negativeInput" 
+                        placeholder="Type criteria to exclude..."
+                        list="negativeList">
+                    <datalist id="negativeList">
+                        <option value="Recently Downsized">
+                        <option value="Competitor">
+                        <option value="Recent Customer Churn">
+                        <option value="Limited Budget">
+                        <option value="Non-Target Region">
+                        <option value="Incompatible Technology">
+                    </datalist>
+                    <button onclick="addCustomOrSuggested('negativeInput')" class="bg-blue-500 text-white px-4 py-2 rounded">Add</button>
+                </div>
+                <div class="helper-text">Examples: Recently Downsized, Competitor, Limited Budget</div>
+                <div id="negativeTags" class="flex flex-wrap gap-2"></div>
             </div>
     
             <!-- Departments -->
@@ -236,11 +354,108 @@
             Save Configuration
         </button>
     </div>
+        <div>
+            <input type="text" id="templateName" placeholder="Template Name">
+            <button onclick="saveAsTemplate()">Save as Template</button>
+            <select id="templateSelect"></select>
+            <button onclick="loadTemplate()">Load Template</button>
+            <button onclick="exportConfiguration()">Export Configuration</button>
+            <input type="file" id="importConfig" onchange="importConfiguration(event)">
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Template Management</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <!-- Save Template -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Template Name</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" 
+                            class="border rounded px-3 py-2 flex-grow" 
+                            id="templateName" 
+                            placeholder="Enter template name...">
+                        <button onclick="saveAsTemplate()" 
+                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                            Save
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Load Template -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Load Existing Template</label>
+                    <div class="flex items-center space-x-2">
+                        <select id="templateSelect" 
+                            class="border rounded px-3 py-2 flex-grow">
+                            <option value="">Select a template...</option>
+                        </select>
+                        <button onclick="loadTemplate()" 
+                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                            Load
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Import/Export -->
+            <div class="flex items-center space-x-4">
+                <button onclick="exportConfiguration()" 
+                    class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded flex items-center">
+                    <span>Export Configuration</span>
+                </button>
+                
+                <div class="relative">
+                    <label class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded cursor-pointer">
+                        Import Configuration
+                        <input type="file" 
+                            id="importConfig" 
+                            class="hidden" 
+                            accept=".json" 
+                            onchange="importConfiguration(event)">
+                    </label>
+                </div>
+            </div>
+        </div>
 </div>
     <script>
-        // Define suggestions object first
+        // Suggestions for autocomplete
         const suggestions = {
-            industries: [
+            businessModel: [
+                "B2B SaaS",
+                "Enterprise Solutions",
+                "Mid-market Focus",
+                "Value-based Selling",
+                "Solution-oriented Approach",
+                "Strategic Partnerships",
+                "Industry-specific Solutions",
+                "Platform Business Model",
+                "Subscription Services",
+                "Professional Services"
+            ],
+            domainExpertise: [
+                "Process Optimization",
+                "Technical Implementation",
+                "Strategic Planning",
+                "Change Management",
+                "Digital Transformation",
+                "System Integration",
+                "Business Analysis",
+                "Project Management",
+                "Technology Strategy",
+                "Operations Management"
+            ],
+            growthIndicators: [
+                "Scaling Operations",
+                "Digital Transformation",
+                "Process Automation",
+                "Market Expansion",
+                "Team Growth",
+                "Technology Modernization",
+                "International Expansion",
+                "Product Line Extension",
+                "Department Restructuring",
+                "Efficiency Optimization"
+            ],
+                industries: [
                 "Software & Technology",
                 "Financial Services",
                 "Healthcare",
@@ -366,7 +581,12 @@
                     'techInput': 'technologies',
                     'titleInput': 'jobTitles',
                     'deptInput': 'departments',
-                    'skillInput': 'skills'
+                    'skillInput': 'skills',
+                    'growthStageInput': 'growthStages',
+                    'locationInput': 'locations',
+                    'businessModelInput': 'businessModels',
+                    'authorityInput': 'authority',
+                    'negativeInput': 'negativeCriteria'
                 };
                 
                 const suggestionType = suggestionMappings[inputId];
@@ -378,44 +598,35 @@
 
         // Initialize everything when document is ready
         $(document).ready(function() {
-            // Add button click handlers
-            $('button[data-input]').click(function() {
-                const inputId = $(this).data('input');
-                addCustomOrSuggested(inputId);
-            });
-
-            // Setup autocomplete for each input
             const inputMappings = {
-                'industryInput': suggestions.industries,
-                'techInput': suggestions.technologies,
-                'titleInput': suggestions.jobTitles,
-                'deptInput': suggestions.departments,
-                'skillInput': suggestions.skills
+                'industryInput': 'industryList',
+                'techInput': 'techList',
+                'titleInput': 'titleList',
+                'deptInput': 'deptList',
+                'skillInput': 'skillList',
+                'growthStageInput': 'growthStageList',
+                'locationInput': 'locationList',
+                'businessModelInput': 'businessModelList',
+                'authorityInput': 'authorityList',
+                'negativeInput': 'negativeList'
             };
 
-            Object.entries(inputMappings).forEach(([inputId, suggestionList]) => {
+            // Handle Enter key and Add button for each input
+            Object.keys(inputMappings).forEach(inputId => {
                 const $input = $(`#${inputId}`);
                 
-                // Setup autocomplete
-                $input.autocomplete({
-                    source: function(request, response) {
-                        const matcher = new RegExp($.ui.autocomplete.escapeRegex(request.term), "i");
-                        const matches = suggestionList.filter(item => matcher.test(item));
-                        response(matches);
-                    },
-                    minLength: 0
-                });
-
                 // Handle Enter key
                 $input.keypress(function(e) {
                     if (e.which === 13) {
+                        e.preventDefault();
                         addCustomOrSuggested(inputId);
                     }
                 });
 
-                // Show all suggestions on focus
-                $input.focus(function() {
-                    $(this).autocomplete("search", "");
+                // Handle Add button click
+                $input.next('button').click(function(e) {
+                    e.preventDefault();
+                    addCustomOrSuggested(inputId);
                 });
             });
         });
@@ -577,7 +788,20 @@
         }
 
         // Update weight displays
-        function updateWeights() {
+        function updateWeights(event) {
+            const changedSlider = event ? event.target.id : null;
+            const individualSlider = $("#individualWeight");
+            const companySlider = $("#companyWeight");
+            
+            if (changedSlider) {
+                const changedValue = parseInt($(event.target).val());
+                if (changedSlider === "individualWeight") {
+                    companySlider.val(100 - changedValue);
+                } else {
+                    individualSlider.val(100 - changedValue);
+                }
+            }
+
             const weights = {
                 individual: parseInt($("#individualWeight").val()),
                 company: parseInt($("#companyWeight").val())
@@ -822,6 +1046,175 @@
             });
             $("#growthInput").keypress(function(e) {
                 if (e.which === 13) addGrowthIndicator();
+            });
+        });
+
+        // Template Management Functions
+        function saveAsTemplate() {
+            const templateName = document.getElementById('templateName').value;
+            if (!templateName) {
+                alert('Please enter a template name');
+                return;
+            }
+
+            const configuration = getConfiguration();
+            const templates = JSON.parse(localStorage.getItem('prospectingTemplates') || '{}');
+            templates[templateName] = configuration;
+            localStorage.setItem('prospectingTemplates', JSON.stringify(templates));
+            
+            updateTemplateList();
+            alert('Template saved successfully!');
+        }
+
+        function loadTemplate() {
+            const templateSelect = document.getElementById('templateSelect');
+            const selectedTemplate = templateSelect.value;
+            
+            if (!selectedTemplate) {
+                alert('Please select a template');
+                return;
+            }
+
+            const templates = JSON.parse(localStorage.getItem('prospectingTemplates') || '{}');
+            const configuration = templates[selectedTemplate];
+            
+            if (configuration) {
+                loadConfiguration(configuration);
+                alert('Template loaded successfully!');
+            }
+        }
+
+        function updateTemplateList() {
+            const templateSelect = document.getElementById('templateSelect');
+            const templates = JSON.parse(localStorage.getItem('prospectingTemplates') || '{}');
+            
+            // Clear existing options except the first one
+            while (templateSelect.options.length > 1) {
+                templateSelect.remove(1);
+            }
+
+            // Add templates as options
+            Object.keys(templates).forEach(templateName => {
+                const option = new Option(templateName, templateName);
+                templateSelect.add(option);
+            });
+        }
+
+        // Import/Export Functions
+        function exportConfiguration() {
+            const configuration = getConfiguration();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(configuration, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "prospect_config.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importConfiguration(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const configuration = JSON.parse(e.target.result);
+                        loadConfiguration(configuration);
+                        alert('Configuration imported successfully!');
+                    } catch (error) {
+                        alert('Error importing configuration: Invalid JSON file');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Helper Functions
+        function getConfiguration() {
+            return {
+                growthStage: getTagValues('growthStageTags'),
+                location: getTagValues('locationTags'),
+                businessModel: getTagValues('businessModelTags'),
+                authority: getTagValues('authorityTags'),
+                negativeCriteria: getTagValues('negativeTags'),
+                // Include existing configuration fields
+                targetProfile: document.getElementById('targetProfile').value,
+                companySize: getTagValues('companySizeTags'),
+                revenue: getTagValues('revenueTags'),
+                industries: getTagValues('industryTags'),
+                technologies: getTagValues('technologyTags'),
+                jobTitles: getTagValues('jobTitleTags'),
+                departments: getTagValues('departmentTags'),
+                skills: getTagValues('skillsTags'),
+                weights: {
+                    company: parseInt(document.getElementById('companyWeight').value),
+                    individual: parseInt(document.getElementById('individualWeight').value)
+                }
+            };
+        }
+
+        function loadConfiguration(config) {
+            // Clear all existing tags
+            const tagContainers = [
+                'growthStageTags',
+                'locationTags',
+                'businessModelTags',
+                'authorityTags',
+                'negativeTags'
+            ];
+            tagContainers.forEach(containerId => {
+                document.getElementById(containerId).innerHTML = '';
+            });
+
+            // Load new configuration
+            document.getElementById('targetProfile').value = config.targetProfile || '';
+            
+            // Load tags for each category
+            if (config.growthStage) loadTags('growthStageTags', config.growthStage);
+            if (config.location) loadTags('locationTags', config.location);
+            if (config.businessModel) loadTags('businessModelTags', config.businessModel);
+            if (config.authority) loadTags('authorityTags', config.authority);
+            if (config.negativeCriteria) loadTags('negativeTags', config.negativeCriteria);
+            
+            // Load existing configuration fields
+            if (config.companySize) loadTags('companySizeTags', config.companySize);
+            if (config.revenue) loadTags('revenueTags', config.revenue);
+            if (config.industries) loadTags('industryTags', config.industries);
+            if (config.technologies) loadTags('technologyTags', config.technologies);
+            if (config.jobTitles) loadTags('jobTitleTags', config.jobTitles);
+            if (config.departments) loadTags('departmentTags', config.departments);
+            if (config.skills) loadTags('skillsTags', config.skills);
+            
+            // Load weights
+            if (config.weights) {
+                document.getElementById('companyWeight').value = config.weights.company;
+                document.getElementById('individualWeight').value = config.weights.individual;
+                updateWeights();
+            }
+        }
+
+        // Initialize template list on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTemplateList();
+            
+            // Initialize tag containers
+            const tagContainers = [
+                'growthStageTags',
+                'locationTags',
+                'businessModelTags',
+                'authorityTags',
+                'negativeTags'
+            ];
+            tagContainers.forEach(containerId => {
+                const input = document.getElementById(containerId.replace('Tags', 'Input'));
+                if (input) {
+                    input.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') {
+                            addCustomOrSuggested(this.id);
+                            e.preventDefault();
+                        }
+                    });
+                }
             });
         });
     </script>
