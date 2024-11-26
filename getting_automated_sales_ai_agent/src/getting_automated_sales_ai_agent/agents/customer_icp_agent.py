@@ -1,11 +1,10 @@
 # agents/customer_icp_agent.py
 
-from crewai import Agent, LLM
-from langchain_community.llms import OpenAI
+from crewai import Agent
 from ..tools.proxycurl_tool import ProxycurlTool
 from ..tools.company_data_tool import CompanyDataTool
 from ..tools.airtable_tool import AirtableTool
-import os
+from ..tools.openai_tool import OpenAITool
 import json
 
 def customer_icp_agent_logic(self):
@@ -97,61 +96,95 @@ As an expert sales analyst, evaluate the following lead against our Ideal Custom
    - Identify potential pain points based on industry and size
    - Evaluate decision-making authority
 
-Please provide a structured analysis in JSON format:
+Return a JSON object with the following structure:
 {
     "lead_score": 1-10,
     "lead_tier": "A/B/C",
-    "justification": "Detailed explanation",
-    "matching_criteria": ["list", "of", "matching", "criteria"],
+    "justification": "Detailed explanation of the scoring and tier assignment",
+    "matching_criteria": [
+        "Specific ICP criteria that match",
+        "e.g., Company size within target range",
+        "e.g., Decision maker in target department",
+        "e.g., Tech stack compatibility"
+    ],
     "technical_fit": {
         "score": 1-10,
-        "analysis": "Technical stack analysis"
+        "analysis": "Detailed analysis of their current tech stack, integration potential, and technical maturity",
+        "tech_stack_details": {
+            "current_systems": ["List of current systems"],
+            "integration_points": ["Potential integration points"],
+            "technical_maturity": "Assessment of technical sophistication"
+        }
     },
-    "pain_points": ["Likely", "pain", "points"],
-    "recommended_approach": "Specific approach based on analysis",
-    "next_steps": ["Prioritized", "next", "steps"]
+    "company_context": {
+        "growth_stage": "Current company growth stage",
+        "market_position": "Position in their market",
+        "decision_makers": ["Relevant decision makers identified"],
+        "budget_indicators": ["Indicators of budget availability"]
+    },
+    "next_steps": [
+        "Specific actions based on ICP match",
+        "e.g., Schedule technical assessment",
+        "e.g., Connect with identified decision makers",
+        "e.g., Prepare customized demo"
+    ]
 }
 """
 
-        # Analyze profiles using the agent's LLM
-        analysis_result = self.llm.complete(analysis_prompt)
+        # Use OpenAITool for analysis
         try:
-            # OpenAI's API may return extra text, so we attempt to extract the JSON part
-            json_start = analysis_result.find('{')
-            json_end = analysis_result.rfind('}') + 1
-            analysis_json = analysis_result[json_start:json_end]
-            analysis = json.loads(analysis_json)
-        except json.JSONDecodeError as e:
-            self.logger.error(f"Error parsing analysis result for lead {lead.get('name')}: {e}")
+            analysis_result = self.openai_tool._run(
+                prompt=analysis_prompt,
+                max_tokens=2000,
+                temperature=0.7
+            )
+            
+            # Parse the JSON response
+            try:
+                # Handle potential text before or after JSON
+                json_start = analysis_result.find('{')
+                json_end = analysis_result.rfind('}') + 1
+                if json_start >= 0 and json_end > 0:
+                    analysis_json = analysis_result[json_start:json_end]
+                    analysis = json.loads(analysis_json)
+                else:
+                    raise ValueError("No JSON found in response")
+                
+            except json.JSONDecodeError as e:
+                print(f"Error parsing analysis result for lead {lead.get('name')}: {e}")
+                print(f"Raw response: {analysis_result}")
+                continue
+
+            # Prepare data for Airtable
+            lead_data = {
+                'Name': lead.get('name'),
+                'Email': lead.get('email'),
+                'Company': lead.get('company'),
+                'Role': lead.get('role'),
+                'LeadScore': analysis.get('lead_score'),
+                'LeadTier': analysis.get('lead_tier'),
+                'Justification': analysis.get('justification'),
+                'MatchingCriteria': json.dumps(analysis.get('matching_criteria', [])),
+                'TechnicalFit': json.dumps(analysis.get('technical_fit', {})),
+                'CompanyContext': json.dumps(analysis.get('company_context', {})),
+                'NextSteps': json.dumps(analysis.get('next_steps', [])),
+                'CompanySize': lead.get('company_size'),
+                'Technologies': lead.get('technologies'),
+                'AnnualRevenue': lead.get('annual_revenue'),
+                'Location': lead.get('location'),
+                'EnrichedProfile': json.dumps(lead)
+            }
+
+            # Store data in Airtable
+            airtable_result = self.airtable_tool._run('create', 'LeadsTable', data=lead_data)
+            if isinstance(airtable_result, dict) and 'error' in airtable_result:
+                print(f"Error storing data in Airtable for lead {lead.get('name')}: {airtable_result['error']}")
+            else:
+                print(f"Lead data stored successfully for lead {lead.get('name')}.")
+
+        except Exception as e:
+            print(f"Error analyzing lead {lead.get('name')}: {str(e)}")
             continue
-
-        # Prepare data for Airtable
-        lead_data = {
-            'Name': lead.get('name'),
-            'Email': lead.get('email'),
-            'Company': lead.get('company'),
-            'Role': lead.get('role'),
-            'LeadScore': analysis.get('lead_score'),
-            'LeadTier': analysis.get('lead_tier'),
-            'Justification': analysis.get('justification'),
-            'MatchingCriteria': analysis.get('matching_criteria'),
-            'TechnicalFit': analysis.get('technical_fit'),
-            'PainPoints': analysis.get('pain_points'),
-            'RecommendedApproach': analysis.get('recommended_approach'),
-            'NextSteps': analysis.get('next_steps'),
-            'CompanySize': lead.get('company_size'),
-            'Technologies': lead.get('technologies'),
-            'AnnualRevenue': lead.get('annual_revenue'),
-            'Location': lead.get('location'),
-            'EnrichedProfile': json.dumps(lead)
-        }
-
-        # Store data in Airtable using AirtableTool
-        airtable_result = self.airtable_tool._run('create', 'LeadsTable', data=lead_data)
-        if isinstance(airtable_result, dict) and 'error' in airtable_result:
-            self.logger.error(f"Error storing data in Airtable for lead {lead.get('name')}: {airtable_result['error']}")
-        else:
-            self.logger.info(f"Lead data stored successfully for lead {lead.get('name')}.")
 
     return "Lead analysis completed and data stored in Airtable."
 

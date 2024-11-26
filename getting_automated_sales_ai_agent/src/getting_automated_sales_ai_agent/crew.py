@@ -6,13 +6,15 @@ from dotenv import load_dotenv
 import os
 from pathlib import Path
 import yaml
+import json
 
 # Import tools
 from .tools.proxycurl_tool import ProxycurlTool
 from .tools.company_data_tool import CompanyDataTool
-from .tools.news_tool import NewsTool
 from .tools.reddit_tool import RedditTool
 from .tools.airtable_tool import AirtableTool
+from .tools.perplexity_tool import PerplexityTool
+from .tools.openai_tool import OpenAITool
 
 class GettingAutomatedSalesAiAgent:
     """GettingAutomatedSalesAiAgent crew"""
@@ -32,6 +34,11 @@ class GettingAutomatedSalesAiAgent:
         with open(config_dir / "config.yaml", 'r') as f:
             self.icp_config = yaml.safe_load(f)
         
+        # Load pricing configuration
+        with open(config_dir / "pricing.yaml", 'r') as f:
+            pricing_config = yaml.safe_load(f)
+            self.pricing_config = pricing_config['models']  # Access the 'models' key
+        
         self.inputs = {
             'leads': None,  # Will be set later
             'config': self.icp_config  # Include ICP config here
@@ -44,13 +51,21 @@ class GettingAutomatedSalesAiAgent:
             api_key=os.getenv('OPENAI_API_KEY')
         )
 
-        # Initialize tools with error checking
+        # Initialize tools with error handling and API key validation
         try:
+            perplexity_api_key = os.getenv('PERPLEXITY_API_KEY')
+            openai_api_key = os.getenv('OPENAI_API_KEY')
+            
+            if not perplexity_api_key:
+                raise ValueError("PERPLEXITY_API_KEY not found in environment variables")
+            if not openai_api_key:
+                raise ValueError("OPENAI_API_KEY not found in environment variables")
+            
             self.tools = {
                 'proxycurl_tool': ProxycurlTool(llm=self.llm),
                 'company_data_tool': CompanyDataTool(llm=self.llm),
-                'news_tool': NewsTool(llm=self.llm),
-                'reddit_tool': RedditTool(llm=self.llm),
+                'perplexity_tool': PerplexityTool(llm=self.llm),
+                'openai_tool': OpenAITool(llm=self.llm),
                 'airtable_tool': AirtableTool(llm=self.llm)
             }
         except ValueError as e:
@@ -83,96 +98,137 @@ class GettingAutomatedSalesAiAgent:
         
         leads = self.inputs['leads']
         icp_criteria = self.icp_config['customer_icp']['scoring_criteria']
-        batch_size = self.crew_config.get('batch_size', 5)
         tasks = []
         
-        # Create lead analysis tasks
-        for i in range(0, len(leads), batch_size):
-            batch = leads[i:i + batch_size]
+        for lead in leads:
+            print(f"\nCreating tasks for lead: {lead.get('name')} at {lead.get('company')}")
+            
+            email = lead.get('email', '')
+            domain = email.split('@')[-1] if email else None
+            
+            if not domain:
+                print(f"Warning: No email domain found for {lead.get('name')}")
+                domain = lead.get('company_website', '').replace('https://', '').replace('www.', '').split('/')[0]
+                if not domain:
+                    print(f"Skipping lead {lead.get('name')} - no email or website domain found")
+                    continue
+                print(f"Using website domain instead: {domain}")
+            
+            # Task 1: ICP Analysis
             tasks.append(
                 Task(
                     description=f"""
-                    Analyze this batch of leads and their companies for ICP fit. Follow these steps exactly:
-
-                    1. Company Website Analysis:
-                       a. Use CompanyDataTool.get_company_data(company_website) to analyze each company's website
-                       b. Extract key company insights:
-                          - Products and services offered
-                          - Technologies mentioned on site
-                          - Company mission and vision
-                          - Self-reported company size
-                          - Key clients or partners mentioned
-                          - Industry focus and target market
-
-                    2. Individual Analysis:
-                       a. Use ProxycurlTool.get_linkedin_profile(linkedin_url) for each lead
-                       b. Extract key individual insights:
-                          - Career progression and experience
-                          - Skills and expertise
-                          - Decision-making authority
-                          - Department size and scope
+                    Analyze this lead and their company for ICP fit. Follow these steps exactly:
+                    1. Company Website Analysis: Use CompanyDataTool for domain: {domain}
+                    2. Individual Analysis: Use ProxycurlTool for LinkedIn: {lead.get('linkedin_url')}
+                    3. Score this opportunity using the provided criteria
+                    4. Provide a detailed assessment of their tech stack and growth stage
                     
-                    3. Score each opportunity using combined data:
-                       
-                       Company Website Indicators (40%):
-                       - Product/service alignment with our solution
-                       - Technology stack mentions
-                       - Target market overlap
-                       - Company maturity indicators
-                       - Client profile mentions
-                       
-                       Role Seniority (30%):
-                       - Decision-making authority
-                       - Budget control indicators
-                       - Team size and scope
-                       - Relevant experience
-                       
-                       Technical Fit (30%):
-                       - Technology alignment
-                       - Integration possibilities
-                       - Existing tool mentions
-                       - Digital maturity signals
-
-                    LEADS:
-                    {batch}
+                    LEAD DATA:
+                    {json.dumps(lead, indent=2)}
                     
                     SCORING CRITERIA:
-                    {icp_criteria}
-                    
-                    4. For each opportunity, provide:
-                       - Website analysis insights
-                       - LinkedIn profile analysis
-                       - Technical compatibility assessment
-                       - Detailed scoring breakdown
-                       - Final weighted score
-                    
-                    5. Store complete results in Airtable
-                    
-                    Return a comprehensive analysis summary for this batch.
+                    {json.dumps(icp_criteria, indent=2)}
                     """,
-                    expected_output=f"Detailed analysis summary with website and LinkedIn insights for leads {i+1} to {min(i+batch_size, len(leads))}",
+                    expected_output="ICP analysis and company data",
                     agent=self.agents['customer_icp']
                 )
             )
-        
-        # Add remaining tasks
-        tasks.extend([
-            Task(
-                description="Identify industry pain points using the provided keywords.",
-                expected_output="A comprehensive list of industry pain points and trends.",
-                agent=self.agents['pain_point']
-            ),
-            Task(
-                description="Customize solution templates based on identified pain points.",
-                expected_output="Customized solution templates that address identified pain points.",
-                agent=self.agents['solution_templates']
-            ),
-            Task(
-                description="Generate personalized offers and email drafts.",
-                expected_output="Personalized offer documents and email drafts for each qualified lead.",
-                agent=self.agents['offer_creator']
+            
+            # Task 2: Pain Point Analysis
+            tasks.append(
+                Task(
+                    description=f"""
+                    Identify pain points using company context and research. Focus on:
+                    1. Mid-market specific challenges for their size ({lead.get('employees', '')} employees)
+                    2. Technology gaps and integration issues with their current stack
+                    3. Growth bottlenecks at their current stage
+                    4. Operational inefficiencies across departments
+                    5. Resource constraints and competitive pressures
+                    
+                    Company Domain: {domain}
+                    Company Website: {lead.get('company_website')}
+                    
+                    LEAD DATA:
+                    {json.dumps(lead, indent=2)}
+                    
+                    PREVIOUS ANALYSIS:
+                    {{result_1}}
+                    
+                    Use Perplexity for targeted research and OpenAI for analysis.
+                    Format findings as structured JSON with evidence and confidence scores.
+                    """,
+                    expected_output="Pain point analysis",
+                    agent=self.agents['pain_point']
+                )
             )
-        ])
+            
+            # Task 3: Solution Templates
+            tasks.append(
+                Task(
+                    description=f"""
+                    Create solution templates based on identified pain points. Consider:
+                    1. Company size: {lead.get('employees')}
+                    2. Industry: {lead.get('industry')}
+                    3. Technology stack: {lead.get('technologies')}
+                    4. Current growth stage and challenges
+                    5. Department-specific needs
+                    
+                    Company Domain: {domain}
+                    
+                    LEAD DATA:
+                    {json.dumps(lead, indent=2)}
+                    
+                    ICP ANALYSIS:
+                    {{result_1}}
+                    
+                    PAIN POINTS:
+                    {{result_2}}
+                    
+                    Customize solutions for their specific context and challenges.
+                    Include implementation considerations and expected outcomes.
+                    """,
+                    expected_output="Customized solution templates",
+                    agent=self.agents['solution_templates']
+                )
+            )
+            
+            # Task 4: Offer Creation
+            tasks.append(
+                Task(
+                    description=f"""
+                    Generate personalized offer using all previous analysis. Include:
+                    1. Value proposition tailored to their specific pain points
+                    2. ROI calculations based on company size and industry
+                    3. Implementation timeline considering their current stage
+                    4. Risk mitigation strategies
+                    5. Competitive differentiators
+                    
+                    Target Contact:
+                    - Name: {lead.get('name')}
+                    - Role: {lead.get('role')}
+                    - Seniority: {lead.get('seniority')}
+                    - Email Domain: {domain}
+                    
+                    LEAD DATA:
+                    {json.dumps(lead, indent=2)}
+                    
+                    ICP ANALYSIS:
+                    {{result_1}}
+                    
+                    PAIN POINTS:
+                    {{result_2}}
+                    
+                    SOLUTION TEMPLATES:
+                    {{result_3}}
+                    
+                    Create a compelling narrative that addresses their specific challenges
+                    and demonstrates clear understanding of their context.
+                    """,
+                    expected_output="Personalized offer",
+                    agent=self.agents['offer_creator']
+                )
+            )
         
         return tasks
 
@@ -233,23 +289,27 @@ class GettingAutomatedSalesAiAgent:
         """Run the crew and calculate costs"""
         result = self.crew.kickoff()
         
-        # Calculate and print costs for both standard and batch pricing
-        standard_costs = self.calculate_costs(self.crew.usage_metrics)
-        batch_costs = self.calculate_costs(self.crew.usage_metrics, use_batch=True)
-        
-        print("\nUsage Statistics:")
-        print(f"Model: {standard_costs['model']}")
-        print(f"Prompt Tokens: {standard_costs['prompt_tokens']:,}")
-        print(f"Completion Tokens: {standard_costs['completion_tokens']:,}")
-        
-        print(f"\nStandard Pricing:")
-        print(f"Input Cost: ${standard_costs['input_cost']:.6f}")
-        print(f"Output Cost: ${standard_costs['output_cost']:.6f}")
-        print(f"Total Cost: ${standard_costs['total_cost']:.6f}")
-        
-        print(f"\nBatch API Pricing (50% discount):")
-        print(f"Input Cost: ${batch_costs['input_cost']:.6f}")
-        print(f"Output Cost: ${batch_costs['output_cost']:.6f}")
-        print(f"Total Cost: ${batch_costs['total_cost']:.6f}")
+        # Check if usage metrics exist
+        if hasattr(self.crew, 'usage_metrics') and self.crew.usage_metrics:
+            # Calculate and print costs for both standard and batch pricing
+            standard_costs = self.calculate_costs(self.crew.usage_metrics)
+            batch_costs = self.calculate_costs(self.crew.usage_metrics, use_batch=True)
+            
+            print("\nUsage Statistics:")
+            print(f"Model: {standard_costs['model']}")
+            print(f"Prompt Tokens: {standard_costs['prompt_tokens']:,}")
+            print(f"Completion Tokens: {standard_costs['completion_tokens']:,}")
+            
+            print(f"\nStandard Pricing:")
+            print(f"Input Cost: ${standard_costs['input_cost']:.6f}")
+            print(f"Output Cost: ${standard_costs['output_cost']:.6f}")
+            print(f"Total Cost: ${standard_costs['total_cost']:.6f}")
+            
+            print(f"\nBatch API Pricing (50% discount):")
+            print(f"Input Cost: ${batch_costs['input_cost']:.6f}")
+            print(f"Output Cost: ${batch_costs['output_cost']:.6f}")
+            print(f"Total Cost: ${batch_costs['total_cost']:.6f}")
+        else:
+            print("\nNo usage metrics available for cost calculation")
         
         return result

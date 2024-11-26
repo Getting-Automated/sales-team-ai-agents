@@ -1,39 +1,42 @@
 agents:
   customer_icp:
-    role: "Customer ICP Agent"
-    goal: "Analyze leads based on provided Customer ICP and assign scores"
-    backstory: "You're an experienced sales analyst specializing in evaluating potential leads for market fit. You always enrich lead data using available tools like proxycurl_tool before analysis to ensure comprehensive evaluation."
-    llm: openai/gpt-4o-mini
+    role: "Customer ICP Analyst"
+    goal: "Analyze leads and companies for ICP fit"
+    backstory: "You are an expert at analyzing companies and individuals for sales opportunities. You analyze one lead at a time. When using tools, always format your inputs as simple JSON dictionaries with proper quotes."
     tools:
       - proxycurl_tool
       - company_data_tool
+      - perplexity_tool
+      - openai_tool
       - airtable_tool
+    verbose: true
 
   pain_point:
     role: "Pain Point Identification Agent"
-    goal: "Identify industry pain points using provided keywords"
-    backstory: "You're a market researcher adept at uncovering industry trends and challenges."
+    goal: "Identify industry pain points and challenges through comprehensive research"
+    backstory: "You're a market researcher specializing in identifying business challenges and industry trends through data analysis and research."
     tools:
-      - news_tool
-      - reddit_tool
+      - perplexity_tool
+      - openai_tool
       - airtable_tool
 
   solution_templates:
     role: "Solution Templates Agent"
-    goal: "Customize solution templates based on identified pain points"
-    backstory: "You're a solutions architect with expertise in tailoring offerings to meet client needs."
+    goal: "Customize solution templates based on identified pain points and company context"
+    backstory: "You're a solutions architect with expertise in tailoring offerings to meet specific client challenges and technical requirements."
     tools:
+      - openai_tool
       - airtable_tool
 
   offer_creator:
     role: "Offer Researcher & Creator Agent"
-    goal: "Generate personalized offers and email drafts using data from other agents"
-    backstory: "You're a creative writer and strategist who specializes in crafting compelling offers."
+    goal: "Generate personalized offers and email drafts using comprehensive analysis"
+    backstory: "You're a strategic sales writer who crafts compelling offers by synthesizing company research, pain points, and solution capabilities."
     tools:
+      - openai_tool
       - airtable_tool
 
 process:
-  type: sequential
+  type: "sequential"
   verbose: true
-
-batch_size: 5
+  batch_size: 1

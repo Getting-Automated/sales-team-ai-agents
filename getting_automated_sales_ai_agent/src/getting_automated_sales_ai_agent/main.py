@@ -68,6 +68,9 @@ def load_config():
         'openai': {
             'api_key': os.getenv('OPENAI_API_KEY')
         },
+        'perplexity': {
+            'api_key': os.getenv('PERPLEXITY_API_KEY')
+        },
         'airtable': {
             'api_key': os.getenv('AIRTABLE_API_KEY'),
             'base_id': os.getenv('AIRTABLE_BASE_ID')
@@ -86,6 +89,50 @@ def load_config():
     
     return config
 
+def process_leads(leads):
+    """Process a single lead"""
+    try:
+        crew = GettingAutomatedSalesAiAgent()
+        crew.inputs['leads'] = leads  # This will be a list with just one lead
+        result = crew.run()
+        print("\nCompleted analysis")
+        return result
+    except Exception as e:
+        print(f"Error processing leads: {str(e)}")
+
+def process_csv_files(input_dir):
+    """Process all CSV files in the input directory"""
+    csv_files = list(Path(input_dir).glob('*.csv'))
+    print(f"Looking for CSV files in: {input_dir}")
+    
+    for csv_file in csv_files:
+        print(f"Processing file: {csv_file.name}")
+        try:
+            # Read the CSV file
+            df = pd.read_csv(csv_file)
+            
+            # Take just the first row as a DataFrame
+            first_lead_df = df.head(1)
+            
+            # Transform using our existing function
+            leads = transform_lead_data(first_lead_df)
+            
+            if not leads:
+                print("No leads found in CSV")
+                continue
+                
+            lead = leads[0]  # Get the first (and only) lead
+            print(f"\nProcessing lead:")
+            print(f"Name: {lead.get('name')}")
+            print(f"Email: {lead.get('email')}")
+            print(f"Company: {lead.get('company')}")
+            
+            # Process just this one lead
+            process_leads([lead])
+            
+        except Exception as e:
+            print(f"Error processing CSV file {csv_file}: {str(e)}")
+
 def run():
     """Main function to run the crew"""
     parser = argparse.ArgumentParser(description='Process leads from a CSV file')
@@ -100,37 +147,10 @@ def run():
     
     if not args.file:
         input_dir = Path(__file__).parent.parent.parent / 'inputs'
-        print(f"Looking for CSV files in: {input_dir}")
-        csv_files = list(input_dir.glob('*.csv'))
-        if not csv_files:
-            print("No CSV files found in inputs directory")
-            return
-        file_path = csv_files[0]
+        process_csv_files(input_dir)
     else:
         file_path = Path(args.file)
-    
-    print(f"Processing file: {file_path.name}")
-    
-    try:
-        df = pd.read_csv(file_path)
-        leads = transform_lead_data(df)
-        
-        inputs = {
-            'leads': leads,
-            'config': load_config(),
-            'mode': args.mode,
-            'offer_id': args.offer_id if args.mode == 'evaluate-single' else None
-        }
-        
-        crew = GettingAutomatedSalesAiAgent()
-        crew.inputs = inputs
-        result = crew.crew.kickoff()
-        print(f"Processed {len(leads)} leads in {args.mode} mode")
-        return result
-        
-    except Exception as e:
-        print(f"Error processing leads: {str(e)}")
-        raise
+        process_leads([transform_lead_data(pd.read_csv(file_path))])
 
 if __name__ == "__main__":
     run()
