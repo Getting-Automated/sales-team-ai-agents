@@ -8,6 +8,7 @@
     <link href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
     <style>
         .ui-autocomplete {
             max-height: 200px;
@@ -328,24 +329,32 @@
             </div>
         </div>
     
-
-
         <!-- Weight Adjustment -->
         <div class="mt-6 p-4 bg-gray-50 rounded-lg">
             <h4 class="text-md font-medium mb-3">Scoring Weights</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium mb-1">Individual Profile Weight</label>
-                    <input type="range" min="0" max="100" value="50" class="w-full" id="individualWeight">
-                    <span class="text-sm text-gray-600" id="individualWeightValue">50%</span>
+                    <input type="range" min="0" max="100" value="25" class="w-full" id="individualWeight">
+                    <span class="text-sm text-gray-600" id="individualWeightValue">25%</span>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-1">Company Indicators Weight</label>
-                    <input type="range" min="0" max="100" value="50" class="w-full" id="companyWeight">
-                    <span class="text-sm text-gray-600" id="companyWeightValue">50%</span>
+                    <label class="block text-sm font-medium mb-1">Company Profile Weight</label>
+                    <input type="range" min="0" max="100" value="25" class="w-full" id="companyWeight">
+                    <span class="text-sm text-gray-600" id="companyWeightValue">25%</span>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Technical Fit Weight</label>
+                    <input type="range" min="0" max="100" value="25" class="w-full" id="technicalWeight">
+                    <span class="text-sm text-gray-600" id="technicalWeightValue">25%</span>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Market Fit Weight</label>
+                    <input type="range" min="0" max="100" value="25" class="w-full" id="marketWeight">
+                    <span class="text-sm text-gray-600" id="marketWeightValue">25%</span>
                 </div>
             </div>
-            <div class="mt-2 text-sm" id="totalWeight">Total Weight: 100%</div>
+            <p class="text-sm text-gray-500 mt-2">Note: Total weight will automatically balance to 100%</p>
         </div>
 
     <!-- Save Configuration -->
@@ -354,13 +363,14 @@
             Save Configuration
         </button>
     </div>
-        <div>
-            <input type="text" id="templateName" placeholder="Template Name">
-            <button onclick="saveAsTemplate()">Save as Template</button>
-            <select id="templateSelect"></select>
-            <button onclick="loadTemplate()">Load Template</button>
-            <button onclick="exportConfiguration()">Export Configuration</button>
-            <input type="file" id="importConfig" onchange="importConfiguration(event)">
+        <div class="flex flex-wrap gap-4 items-center my-4">
+            <input type="text" id="templateName" placeholder="Template Name" class="border rounded px-3 py-2">
+            <button onclick="saveAsTemplate()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save as Template</button>
+            <select id="templateSelect" class="border rounded px-3 py-2">
+                <option value="">Select a template...</option>
+            </select>
+            <button onclick="loadTemplate()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Load Template</button>
+            <button onclick="exportConfiguration()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">Export Configuration</button>
         </div>
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 class="text-2xl font-semibold mb-4">Template Management</h2>
@@ -538,7 +548,6 @@
             $(button).parent().remove();
         }
 
-        // Function to add tags
         function addTag(inputId, tagsId, type) {
             const input = $(`#${inputId}`);
             const value = input.val().trim();
@@ -557,7 +566,7 @@
                 // Create tag with custom indicator if needed
                 const tag = $(`
                     <div class="inline-flex items-center bg-blue-100 rounded px-2 py-1 mr-2 mb-2 group">
-                        <span class="text-blue-800">${value}</span>
+                        <span class="text-blue-800 ${type === 'custom' ? 'custom' : ''}">${value}</span>
                         ${type === 'custom' ? '<span class="ml-1 text-xs text-blue-600">(custom)</span>' : ''}
                         <button onclick="removeTag(this)" class="ml-2 text-blue-600 hover:text-blue-800" title="Remove">×</button>
                     </div>
@@ -569,7 +578,7 @@
                 // Show success tooltip
                 showTooltip(inputId, 'Added successfully', 'success');
             }
-        }
+}
 
         // Function to add custom or suggested values
         function addCustomOrSuggested(inputId) {
@@ -579,14 +588,12 @@
                 const suggestionMappings = {
                     'industryInput': 'industries',
                     'techInput': 'technologies',
-                    'titleInput': 'jobTitles',
-                    'deptInput': 'departments',
-                    'skillInput': 'skills',
-                    'growthStageInput': 'growthStages',
-                    'locationInput': 'locations',
+                    'growthInput': 'growthIndicators',
                     'businessModelInput': 'businessModels',
-                    'authorityInput': 'authority',
-                    'negativeInput': 'negativeCriteria'
+                    'domainInput': 'domains',
+                    'locationInput': 'locations',
+                    'growthStageInput': 'growthStages',
+                    'deptInput': 'departments'
                 };
                 
                 const suggestionType = suggestionMappings[inputId];
@@ -789,40 +796,53 @@
 
         // Update weight displays
         function updateWeights(event) {
-            const changedSlider = event ? event.target.id : null;
-            const individualSlider = $("#individualWeight");
-            const companySlider = $("#companyWeight");
-            
-            if (changedSlider) {
-                const changedValue = parseInt($(event.target).val());
-                if (changedSlider === "individualWeight") {
-                    companySlider.val(100 - changedValue);
+            const weights = {
+                individual: parseInt($("#individualWeight").val()),
+                company: parseInt($("#companyWeight").val()),
+                technical: parseInt($("#technicalWeight").val()),
+                market: parseInt($("#marketWeight").val())
+            };
+
+            // If a weight was changed, adjust others proportionally
+            if (event) {
+                const changedId = event.target.id;
+                const changedValue = weights[changedId.replace('Weight', '')];
+                const otherWeights = Object.keys(weights).filter(key => key + 'Weight' !== changedId);
+                
+                // Calculate total of other weights
+                const totalOtherWeights = otherWeights.reduce((sum, key) => sum + weights[key], 0);
+                
+                if (totalOtherWeights > 0) {
+                    // Adjust other weights proportionally
+                    const remainingTotal = 100 - changedValue;
+                    otherWeights.forEach(key => {
+                        const proportion = weights[key] / totalOtherWeights;
+                        weights[key] = Math.round(remainingTotal * proportion);
+                        $(`#${key}Weight`).val(weights[key]);
+                    });
                 } else {
-                    individualSlider.val(100 - changedValue);
+                    // If all other weights are 0, distribute equally
+                    const remainingTotal = 100 - changedValue;
+                    const equalShare = Math.round(remainingTotal / otherWeights.length);
+                    otherWeights.forEach(key => {
+                        weights[key] = equalShare;
+                        $(`#${key}Weight`).val(equalShare);
+                    });
                 }
             }
 
-            const weights = {
-                individual: parseInt($("#individualWeight").val()),
-                company: parseInt($("#companyWeight").val())
-            };
-
+            // Update display values
             $("#individualWeightValue").text(weights.individual + "%");
             $("#companyWeightValue").text(weights.company + "%");
-
-            const total = weights.individual + weights.company;
-            $("#totalWeight").text(`Total Weight: ${total}%`);
-            $("#totalWeight").removeClass().addClass(
-                total === 100 
-                    ? "mt-2 text-sm text-green-600" 
-                    : "mt-2 text-sm text-red-600"
-            );
+            $("#technicalWeightValue").text(weights.technical + "%");
+            $("#marketWeightValue").text(weights.market + "%");
         }
 
-        // Add event listeners for weight sliders
+        // Add event listeners for all weight sliders
         $(document).ready(function() {
-            $("#individualWeight, #companyWeight").on('input', updateWeights);
+            $("#individualWeight, #companyWeight, #technicalWeight, #marketWeight").on('input', updateWeights);
         });
+
         // Calculate score
         function calculateScore() {
             const weights = {
@@ -923,51 +943,115 @@
             }
         }
 
-        // Save configuration
-        function saveConfiguration() {
+        async function saveConfiguration() {
+    // Get minimum requirements values
+            const companyRevenueMin = $("#minRevenue").val().trim();
+            const companyRevenueMax = $("#maxRevenue").val().trim();
+            const employeeCountMin = parseInt($("#minEmployees").val()) || null;
+            const employeeCountMax = parseInt($("#maxEmployees").val()) || null;
+
             const config = {
-                weights: {
-                    individual: parseInt($("#individualWeight").val()) / 100,
-                    company: parseInt($("#companyWeight").val()) / 100,
-                    technical: parseInt($("#technicalWeight").val()) / 100,
-                    market: parseInt($("#marketWeight").val()) / 100
-                },
-                scoring: {
-                    individual: {
-                        jobLevel: document.getElementById('jobLevel').value,
-                        expertise: document.getElementById('expertise').value
+                customer_icp: {
+                    profile_overview: $("#targetOverview").val().trim(),
+                    weights: {
+                        individual: parseInt($("#individualWeight").val()) || 25,
+                        company: parseInt($("#companyWeight").val()) || 25,
+                        technical: parseInt($("#technicalWeight").val()) || 25,
+                        market: parseInt($("#marketWeight").val()) || 25
                     },
-                    company: {
-                        size: document.getElementById('companySize').value,
-                        industryAlignment: document.getElementById('industryAlignment').value
+                    tags: {
+                        industries: Array.from(document.querySelectorAll('#industryTags .text-blue-800')).map(tag => tag.textContent.trim()),
+                        business_models: Array.from(document.querySelectorAll('#businessModelTags .text-blue-800')).map(tag => tag.textContent.trim()),
+                        technologies: Array.from(document.querySelectorAll('#techTags .text-blue-800')).map(tag => tag.textContent.trim()),
+                        locations: Array.from(document.querySelectorAll('#locationTags .text-blue-800')).map(tag => tag.textContent.trim()),
+                        growth_stages: Array.from(document.querySelectorAll('#growthStageTags .text-blue-800')).map(tag => tag.textContent.trim())
                     },
-                    technical: {
-                        techStack: document.getElementById('techStack').value,
-                        integration: document.getElementById('integration').value
-                    },
-                    market: {
-                        painPoints: document.getElementById('painPoints').value,
-                        growth: document.getElementById('growth').value
+                    target_departments: Array.from(document.querySelectorAll('#deptTags .text-blue-800')).map(tag => tag.textContent.trim()),
+                    job_titles: Array.from(document.querySelectorAll('#titleTags .text-blue-800')).map(tag => tag.textContent.trim()),
+                    decision_making_authority: Array.from(document.querySelectorAll('#authorityTags .text-blue-800')).map(tag => tag.textContent.trim()),
+                    negative_criteria: Array.from(document.querySelectorAll('#negativeTags .text-blue-800')).map(tag => tag.textContent.trim()),
+                    required_skills: Array.from(document.querySelectorAll('#skillTags .text-blue-800')).map(tag => tag.textContent.trim()),
+                    minimum_requirements: {
+                        ...(companyRevenueMin && { company_revenue_min: parseInt(companyRevenueMin) }),
+                        ...(companyRevenueMax && { company_revenue_max: parseInt(companyRevenueMax) }),
+                        ...(employeeCountMin && { employee_count_min: employeeCountMin }),
+                        ...(employeeCountMax && { employee_count_max: employeeCountMax })
                     }
                 }
             };
 
-            // Send configuration to server
-            fetch('/save-config', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(config)
-            })
-            .then(response => response.json())
-            .then(data => {
-                showNotification('Configuration saved successfully', 'success');
-            })
-            .catch(error => {
+            try {
+                // Convert config object to YAML string
+                const yamlString = jsyaml.dump(config, {
+                    indent: 2,
+                    lineWidth: -1,
+                    noRefs: true
+                });
+
+                // Use File System Access API to save the file
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: 'config.yaml',
+                        types: [{
+                            description: 'YAML files',
+                            accept: {
+                                'text/yaml': ['.yaml', '.yml']
+                            }
+                        }]
+                    });
+
+                    const writable = await handle.createWritable();
+                    await writable.write(yamlString);
+                    await writable.close();
+
+                    showNotification('Configuration saved successfully', 'success');
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        throw err;
+                    }
+                }
+            } catch (error) {
+                console.error('Error saving configuration:', error);
                 showNotification('Error saving configuration', 'error');
-                console.error('Error:', error);
-            });
+            }
+        }
+
+        function loadConfiguration(config) {
+            if (!config || !config.customer_icp) return;
+            
+            const icp = config.customer_icp;
+            
+            // Load weights
+            if (icp.weights) {
+                $("#individualWeight").val(icp.weights.individual || 25);
+                $("#companyWeight").val(icp.weights.company || 25);
+                $("#technicalWeight").val(icp.weights.technical || 25);
+                $("#marketWeight").val(icp.weights.market || 25);
+                updateWeights();
+            }
+
+            // Load minimum requirements
+            if (icp.minimum_requirements) {
+                $("#minRevenue").val(icp.minimum_requirements.company_revenue || '');
+                $("#minEmployees").val(icp.minimum_requirements.employee_count || '');
+            }
+
+            // Clear existing tags
+            $('.tag').remove();
+
+            // Load tags
+            if (icp.tags) {
+                icp.tags.industries?.forEach(tag => addTag('industryInput', 'industryTags', tag));
+                icp.tags.business_models?.forEach(tag => addTag('businessModelInput', 'businessModelTags', tag));
+                icp.tags.domains?.forEach(tag => addTag('domainInput', 'domainTags', tag));
+                icp.tags.growth_indicators?.forEach(tag => addTag('growthInput', 'growthTags', tag));
+                icp.tags.technologies?.forEach(tag => addTag('techInput', 'techTags', tag));
+                icp.tags.locations?.forEach(tag => addTag('locationInput', 'locationTags', tag));
+                icp.tags.growth_stages?.forEach(tag => addTag('growthStageInput', 'growthStageTags', tag));
+            }
+
+            // Load departments
+            icp.target_departments?.forEach(tag => addTag('deptInput', 'departmentTags', tag));
         }
 
         // Show notification
