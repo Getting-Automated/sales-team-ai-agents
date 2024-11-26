@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales AI Agents Configuration Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <style>
+        .ui-autocomplete {
+            max-height: 200px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            z-index: 1000;
+        }
+        .helper-text {
+            font-size: 0.875rem;
+            color: #6B7280;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- ... existing header code ... -->
+
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8">Lead Scoring Configuration</h1>
+        
+        <!-- Target Profile Overview -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Target Profile Overview</h2>
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">Who are your ideal prospects?</label>
+                <textarea 
+                    class="border rounded px-3 py-2 w-full h-32" 
+                    id="targetOverview"
+                    placeholder="Describe your ideal prospect and company profile. Example: Senior decision-makers in companies that have [specific characteristics], particularly those with experience in [relevant areas]..."
+                ></textarea>
+                <div class="helper-text">This helps our AI understand which leads to prioritize from your list</div>
+            </div>
+        </div>
+    
+        <!-- Target Company Parameters -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Target Company Parameters</h2>
+            
+            <!-- Company Size -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-3">Company Size</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Employee Count Range</label>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" class="border rounded px-3 py-2 w-full" id="minEmployees" placeholder="Min">
+                            <span>to</span>
+                            <input type="number" class="border rounded px-3 py-2 w-full" id="maxEmployees" placeholder="Max">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Revenue Range (Optional)</label>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" class="border rounded px-3 py-2 w-full" id="minRevenue" placeholder="Min">
+                            <span>to</span>
+                            <input type="number" class="border rounded px-3 py-2 w-full" id="maxRevenue" placeholder="Max">
+                        </div>
+                    </div>
+                </div>
+            </div>
+    
+            <!-- Target Industries -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-3">Target Industries</h3>
+                <div class="flex items-center space-x-2 mb-2">
+                    <input type="text" 
+                        class="border rounded px-3 py-2 flex-grow" 
+                        id="industryInput" 
+                        placeholder="Type or select an industry..."
+                        list="industryList">
+                    <datalist id="industryList">
+                        <option value="Software & Technology">
+                        <option value="Financial Services">
+                        <option value="Healthcare">
+                        <option value="Manufacturing">
+                        <option value="Retail & E-commerce">
+                        <option value="Professional Services">
+                        <option value="Education">
+                        <option value="Real Estate">
+                        <option value="Telecommunications">
+                        <option value="Media & Entertainment">
+                    </datalist>
+                    <button onclick="addCustomOrSuggested('industryInput')" class="bg-blue-500 text-white px-4 py-2 rounded">Add</button>
+                </div>
+                <div class="helper-text">Examples: SaaS, Manufacturing, Healthcare, Financial Services</div>
+                <div id="industryTags" class="flex flex-wrap gap-2"></div>
+            </div>
+    
+            <!-- Technologies -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-3">Target Technologies/Tools</h3>
+                <div class="flex items-center space-x-2 mb-2">
+                    <input type="text" 
+                        class="border rounded px-3 py-2 flex-grow" 
+                        id="techInput" 
+                        placeholder="Type or select a technology..."
+                        list="techList">
+                    <datalist id="techList">
+                        <option value="Salesforce">
+                        <option value="SAP">
+                        <option value="Oracle">
+                        <option value="Microsoft Azure">
+                        <option value="AWS">
+                        <option value="HubSpot">
+                        <option value="Workday">
+                        <option value="ServiceNow">
+                        <option value="Zendesk">
+                        <option value="Adobe Creative Suite">
+                    </datalist>
+                    <button onclick="addCustomOrSuggested('techInput')" class="bg-blue-500 text-white px-4 py-2 rounded">Add</button>
+                </div>
+                <div class="helper-text">Examples: CRM systems, ERP software, Cloud platforms, Industry-specific tools</div>
+                <div id="techTags" class="flex flex-wrap gap-2"></div>
+            </div>
+        </div>
+    
+        <!-- Target Individual Parameters -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Target Individual Parameters</h2>
+    
+            <!-- Job Titles -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-3">Target Job Titles</h3>
+                <div class="flex items-center space-x-2 mb-2">
+                    <input type="text" 
+                        class="border rounded px-3 py-2 flex-grow" 
+                        id="titleInput" 
+                        placeholder="Type or select a job title..."
+                        list="titleList">
+                    <datalist id="titleList">
+                        <option value="Chief Executive Officer (CEO)">
+                        <option value="Chief Technology Officer (CTO)">
+                        <option value="Chief Financial Officer (CFO)">
+                        <option value="Vice President of Sales">
+                        <option value="Director of Operations">
+                        <option value="Head of Marketing">
+                        <option value="IT Manager">
+                        <option value="Project Manager">
+                        <option value="Product Manager">
+                        <option value="Business Development Manager">
+                    </datalist>
+                    <button onclick="addCustomOrSuggested('titleInput')" class="bg-blue-500 text-white px-4 py-2 rounded">Add</button>
+                </div>
+                <div class="helper-text">Examples: CEO, VP of Sales, Director of Operations, IT Manager</div>
+                <div id="titleTags" class="flex flex-wrap gap-2"></div>
+            </div>
+    
+            <!-- Departments -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-3">Target Departments</h3>
+                <div class="flex items-center space-x-2 mb-2">
+                    <input type="text" 
+                        class="border rounded px-3 py-2 flex-grow" 
+                        id="deptInput" 
+                        placeholder="Type or select a department..."
+                        list="deptList">
+                    <datalist id="deptList">
+                        <option value="Sales">
+                        <option value="Marketing">
+                        <option value="Information Technology">
+                        <option value="Operations">
+                        <option value="Finance">
+                        <option value="Human Resources">
+                        <option value="Research & Development">
+                        <option value="Customer Service">
+                        <option value="Product Management">
+                        <option value="Business Development">
+                    </datalist>
+                    <button onclick="addCustomOrSuggested('deptInput')" class="bg-blue-500 text-white px-4 py-2 rounded">Add</button>
+                </div>
+                <div class="helper-text">Examples: Sales, Marketing, IT, Operations, Finance</div>
+                <div id="deptTags" class="flex flex-wrap gap-2"></div>
+            </div>
+    
+            <!-- Required Skills/Experience -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-3">Required Skills/Experience</h3>
+                <div class="flex items-center space-x-2 mb-2">
+                    <input type="text" 
+                        class="border rounded px-3 py-2 flex-grow" 
+                        id="skillInput" 
+                        placeholder="Type or select a skill..."
+                        list="skillList">
+                    <datalist id="skillList">
+                        <option value="Project Management">
+                        <option value="Team Leadership">
+                        <option value="Strategic Planning">
+                        <option value="Budget Management">
+                        <option value="Digital Transformation">
+                        <option value="Change Management">
+                        <option value="Process Optimization">
+                        <option value="Data Analysis">
+                        <option value="Software Implementation">
+                        <option value="Vendor Management">
+                    </datalist>
+                    <button onclick="addCustomOrSuggested('skillInput')" class="bg-blue-500 text-white px-4 py-2 rounded">Add</button>
+                </div>
+                <div class="helper-text">Examples: Project Management, Team Leadership, Strategic Planning, Industry Expertise</div>
+                <div id="skillTags" class="flex flex-wrap gap-2"></div>
+            </div>
+        </div>
+    
+
+
+        <!-- Weight Adjustment -->
+        <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h4 class="text-md font-medium mb-3">Scoring Weights</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Individual Profile Weight</label>
+                    <input type="range" min="0" max="100" value="50" class="w-full" id="individualWeight">
+                    <span class="text-sm text-gray-600" id="individualWeightValue">50%</span>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Company Indicators Weight</label>
+                    <input type="range" min="0" max="100" value="50" class="w-full" id="companyWeight">
+                    <span class="text-sm text-gray-600" id="companyWeightValue">50%</span>
+                </div>
+            </div>
+            <div class="mt-2 text-sm" id="totalWeight">Total Weight: 100%</div>
+        </div>
+
+    <!-- Save Configuration -->
+    <div class="flex justify-end">
+        <button class="bg-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700" onclick="saveConfiguration()">
+            Save Configuration
+        </button>
+    </div>
+</div>
+    <script>
+        // Define suggestions object first
+        const suggestions = {
+            industries: [
+                "Software & Technology",
+                "Financial Services",
+                "Healthcare",
+                "Manufacturing",
+                "Retail & E-commerce",
+                "Professional Services",
+                "Education",
+                "Real Estate",
+                "Telecommunications",
+                "Media & Entertainment"
+            ],
+            technologies: [
+                "Salesforce",
+                "SAP",
+                "Oracle",
+                "Microsoft Azure",
+                "AWS",
+                "HubSpot",
+                "Workday",
+                "ServiceNow",
+                "Zendesk",
+                "Adobe Creative Suite"
+            ],
+            jobTitles: [
+                "Chief Executive Officer (CEO)",
+                "Chief Technology Officer (CTO)",
+                "Chief Financial Officer (CFO)",
+                "Vice President of Sales",
+                "Director of Operations",
+                "Head of Marketing",
+                "IT Manager",
+                "Project Manager",
+                "Product Manager",
+                "Business Development Manager"
+            ],
+            departments: [
+                "Sales",
+                "Marketing",
+                "Information Technology",
+                "Operations",
+                "Finance",
+                "Human Resources",
+                "Research & Development",
+                "Customer Service",
+                "Product Management",
+                "Business Development"
+            ],
+            skills: [
+                "Project Management",
+                "Team Leadership",
+                "Strategic Planning",
+                "Budget Management",
+                "Digital Transformation",
+                "Change Management",
+                "Process Optimization",
+                "Data Analysis",
+                "Software Implementation",
+                "Vendor Management"
+            ]
+        };
+
+        // Helper function to show tooltips
+        function showTooltip(elementId, message, type = 'error') {
+            const input = $(`#${elementId}`);
+            const tooltip = $(`<div class="absolute z-20 px-2 py-1 text-sm rounded ${
+                type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            } text-white">${message}</div>`);
+            
+            input.parent().append(tooltip);
+            tooltip.css({
+                top: input.position().top - tooltip.height() - 5,
+                left: input.position().left
+            });
+            
+            setTimeout(() => tooltip.fadeOut('fast', function() { $(this).remove(); }), 2000);
+        }
+
+        // Function to remove tags
+        function removeTag(button) {
+            $(button).parent().remove();
+        }
+
+        // Function to add tags
+        function addTag(inputId, tagsId, type) {
+            const input = $(`#${inputId}`);
+            const value = input.val().trim();
+            
+            if (value) {
+                // Check if value already exists
+                const existingTags = $(`#${tagsId} .text-blue-800`).map(function() {
+                    return $(this).text().toLowerCase();
+                }).get();
+                
+                if (existingTags.includes(value.toLowerCase())) {
+                    showTooltip(inputId, 'This entry already exists');
+                    return;
+                }
+
+                // Create tag with custom indicator if needed
+                const tag = $(`
+                    <div class="inline-flex items-center bg-blue-100 rounded px-2 py-1 mr-2 mb-2 group">
+                        <span class="text-blue-800">${value}</span>
+                        ${type === 'custom' ? '<span class="ml-1 text-xs text-blue-600">(custom)</span>' : ''}
+                        <button onclick="removeTag(this)" class="ml-2 text-blue-600 hover:text-blue-800" title="Remove">×</button>
+                    </div>
+                `);
+                
+                $(`#${tagsId}`).append(tag);
+                input.val('');
+                
+                // Show success tooltip
+                showTooltip(inputId, 'Added successfully', 'success');
+            }
+        }
+
+        // Function to add custom or suggested values
+        function addCustomOrSuggested(inputId) {
+            const $input = $(`#${inputId}`);
+            const value = $input.val().trim();
+            if (value) {
+                const suggestionMappings = {
+                    'industryInput': 'industries',
+                    'techInput': 'technologies',
+                    'titleInput': 'jobTitles',
+                    'deptInput': 'departments',
+                    'skillInput': 'skills'
+                };
+                
+                const suggestionType = suggestionMappings[inputId];
+                const suggestionList = suggestions[suggestionType] || [];
+                const type = suggestionList.includes(value) ? 'suggested' : 'custom';
+                addTag(inputId, `${inputId.replace('Input', 'Tags')}`, type);
+            }
+        }
+
+        // Initialize everything when document is ready
+        $(document).ready(function() {
+            // Add button click handlers
+            $('button[data-input]').click(function() {
+                const inputId = $(this).data('input');
+                addCustomOrSuggested(inputId);
+            });
+
+            // Setup autocomplete for each input
+            const inputMappings = {
+                'industryInput': suggestions.industries,
+                'techInput': suggestions.technologies,
+                'titleInput': suggestions.jobTitles,
+                'deptInput': suggestions.departments,
+                'skillInput': suggestions.skills
+            };
+
+            Object.entries(inputMappings).forEach(([inputId, suggestionList]) => {
+                const $input = $(`#${inputId}`);
+                
+                // Setup autocomplete
+                $input.autocomplete({
+                    source: function(request, response) {
+                        const matcher = new RegExp($.ui.autocomplete.escapeRegex(request.term), "i");
+                        const matches = suggestionList.filter(item => matcher.test(item));
+                        response(matches);
+                    },
+                    minLength: 0
+                });
+
+                // Handle Enter key
+                $input.keypress(function(e) {
+                    if (e.which === 13) {
+                        addCustomOrSuggested(inputId);
+                    }
+                });
+
+                // Show all suggestions on focus
+                $input.focus(function() {
+                    $(this).autocomplete("search", "");
+                });
+            });
+        });
+
+        // Sample lead templates
+        const leadTemplates = {
+            tech_executive: {
+                name: "Sarah Chen",
+                role: "CTO",
+                company: "TechFlow Solutions",
+                businessModel: {
+                    type: "B2B SaaS",
+                    focus: "Enterprise Solutions",
+                    approach: "Value-based Selling"
+                },
+                background: {
+                    expertise: "Technical Implementation",
+                    decision_making: "Budget Authority",
+                    initiatives: ["Digital Transformation", "Process Automation"]
+                },
+                technical: {
+                    stack: "Modern",
+                    integration: "API-ready",
+                    systems: ["AWS", "Kubernetes", "Microservices"]
+                },
+                scoring: {
+                    customerAlignment: "high",
+                    growthChallenges: "high",
+                    marketApproach: "high",
+                    domainExpertise: "high",
+                    decisionMaking: "high",
+                    projectAlignment: "high",
+                    techAlignment: "high",
+                    integrationPotential: "high"
+                }
+            },
+            sales_leader: {
+                name: "Michael Rodriguez",
+                role: "VP of Sales",
+                company: "CloudScale Inc",
+                businessModel: {
+                    type: "B2B/B2C Mix",
+                    focus: "Mid-market",
+                    approach: "Mixed Approach"
+                },
+                background: {
+                    expertise: "Sales Operations",
+                    decision_making: "Influence without Authority",
+                    initiatives: ["Sales Process Optimization"]
+                },
+                technical: {
+                    stack: "Mixed Legacy/Modern",
+                    integration: "Basic Integration",
+                    systems: ["Salesforce", "HubSpot"]
+                },
+                scoring: {
+                    customerAlignment: "medium",
+                    growthChallenges: "medium",
+                    marketApproach: "medium",
+                    domainExpertise: "medium",
+                    decisionMaking: "medium",
+                    projectAlignment: "medium",
+                    techAlignment: "medium",
+                    integrationPotential: "medium"
+                }
+            },
+            startup_founder: {
+                name: "Emma Watson",
+                role: "CEO & Technical Founder",
+                company: "DataMind AI",
+                businessModel: {
+                    type: "B2C Focus",
+                    focus: "Small Business",
+                    approach: "Transactional"
+                },
+                background: {
+                    expertise: "Unrelated",
+                    decision_making: "No Clear Influence",
+                    initiatives: ["General Growth"]
+                },
+                technical: {
+                    stack: "Legacy",
+                    integration: "Manual Processes",
+                    systems: ["Basic CRM"]
+                },
+                scoring: {
+                    customerAlignment: "low",
+                    growthChallenges: "low",
+                    marketApproach: "low",
+                    domainExpertise: "low",
+                    decisionMaking: "low",
+                    projectAlignment: "low",
+                    techAlignment: "low",
+                    integrationPotential: "low"
+                }
+            }
+        };
+
+        // Load sample lead data
+        function loadSampleLead() {
+            const template = $("#sampleLeadTemplate").val();
+            if (template && leadTemplates[template]) {
+                $("#sampleLead").val(JSON.stringify(leadTemplates[template], null, 2));
+            }
+        }
+
+        // Add business model indicator
+        function addBusinessModel() {
+            const input = $("#businessModelInput");
+            const value = input.val().trim();
+            if (value) {
+                const tag = $(`<div class="inline-flex items-center bg-blue-100 rounded px-2 py-1 mr-2 mb-2">
+                    <span class="text-blue-800">${value}</span>
+                    <button onclick="removeTag(this, 'businessModel')" class="ml-2 text-blue-600 hover:text-blue-800">×</button>
+                </div>`);
+                $("#businessModelTags").append(tag);
+                input.val('');
+            }
+        }
+
+        // Add domain expertise
+        function addDomain() {
+            const input = $("#domainInput");
+            const value = input.val().trim();
+            if (value) {
+                const tag = $(`<div class="inline-flex items-center bg-green-100 rounded px-2 py-1 mr-2 mb-2">
+                    <span class="text-green-800">${value}</span>
+                    <button onclick="removeTag(this, 'domain')" class="ml-2 text-green-600 hover:text-green-800">×</button>
+                </div>`);
+                $("#domainTags").append(tag);
+                input.val('');
+            }
+        }
+
+        // Add growth indicator
+        function addGrowthIndicator() {
+            const input = $("#growthInput");
+            const value = input.val().trim();
+            if (value) {
+                const tag = $(`<div class="inline-flex items-center bg-purple-100 rounded px-2 py-1 mr-2 mb-2">
+                    <span class="text-purple-800">${value}</span>
+                    <button onclick="removeTag(this, 'growth')" class="ml-2 text-purple-600 hover:text-purple-800">×</button>
+                </div>`);
+                $("#growthTags").append(tag);
+                input.val('');
+            }
+        }
+
+        // Remove tag
+        function removeTag(button, type) {
+            $(button).parent().remove();
+        }
+
+        // Get tags
+        function getTags(type) {
+            return $(`#${type}Tags .text-${type === 'businessModel' ? 'blue' : type === 'domain' ? 'green' : 'purple'}-800`).map(function() {
+                return $(this).text();
+            }).get();
+        }
+
+        // Update weight displays
+        function updateWeights() {
+            const weights = {
+                individual: parseInt($("#individualWeight").val()),
+                company: parseInt($("#companyWeight").val())
+            };
+
+            $("#individualWeightValue").text(weights.individual + "%");
+            $("#companyWeightValue").text(weights.company + "%");
+
+            const total = weights.individual + weights.company;
+            $("#totalWeight").text(`Total Weight: ${total}%`);
+            $("#totalWeight").removeClass().addClass(
+                total === 100 
+                    ? "mt-2 text-sm text-green-600" 
+                    : "mt-2 text-sm text-red-600"
+            );
+        }
+
+        // Add event listeners for weight sliders
+        $(document).ready(function() {
+            $("#individualWeight, #companyWeight").on('input', updateWeights);
+        });
+        // Calculate score
+        function calculateScore() {
+            const weights = {
+                individual: parseInt($("#individualWeight").val()) / 100,
+                company: parseInt($("#companyWeight").val()) / 100,
+                technical: parseInt($("#technicalWeight").val()) / 100,
+                market: parseInt($("#marketWeight").val()) / 100
+            };
+
+            const scoreValues = {
+                high: 1.0,
+                medium: 0.5,
+                low: 0.0
+            };
+
+            // Individual Profile Score
+            const individualScore = (
+                scoreValues[document.getElementById('jobLevel').value] +
+                scoreValues[document.getElementById('expertise').value]
+            ) / 2 * weights.individual;
+
+            // Company Profile Score
+            const companyScore = (
+                scoreValues[document.getElementById('companySize').value] +
+                scoreValues[document.getElementById('industryAlignment').value]
+            ) / 2 * weights.company;
+
+            // Technical Score
+            const technicalScore = (
+                scoreValues[document.getElementById('techStack').value] +
+                scoreValues[document.getElementById('integration').value]
+            ) / 2 * weights.technical;
+
+            // Market Fit Score
+            const marketScore = (
+                scoreValues[document.getElementById('painPoints').value] +
+                scoreValues[document.getElementById('growth').value]
+            ) / 2 * weights.market;
+
+            const totalScore = (individualScore + companyScore + technicalScore + marketScore) * 100;
+            return {
+                total: totalScore.toFixed(1),
+                breakdown: {
+                    individual: (individualScore * 100).toFixed(1),
+                    company: (companyScore * 100).toFixed(1),
+                    technical: (technicalScore * 100).toFixed(1),
+                    market: (marketScore * 100).toFixed(1)
+                }
+            };
+        }
+
+        // Show test results
+        function showTestResults() {
+            const score = calculateScore();
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = `
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-2">Lead Score: ${score.total}%</h3>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span>Individual Profile (${$("#individualWeight").val()}%):</span>
+                            <span>${score.breakdown.individual}%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Company Profile (${$("#companyWeight").val()}%):</span>
+                            <span>${score.breakdown.company}%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Technical Alignment (${$("#technicalWeight").val()}%):</span>
+                            <span>${score.breakdown.technical}%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Market Fit (${$("#marketWeight").val()}%):</span>
+                            <span>${score.breakdown.market}%</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-3 ${getRecommendationClass(score.total)} rounded">
+                        <span class="font-medium">Recommendation: </span>
+                        ${getRecommendationText(score.total)}
+                    </div>
+                </div>
+            `;
+        }
+
+        function getRecommendationClass(score) {
+            if (score >= 75) return 'bg-green-100';
+            if (score >= 50) return 'bg-yellow-100';
+            return 'bg-red-100';
+        }
+
+        function getRecommendationText(score) {
+            if (score >= 75) {
+                return 'High-priority prospect - Perfect ICP match with strong potential for success. Immediate engagement recommended.';
+            } else if (score >= 50) {
+                return 'Moderate fit - Good potential but may need specific focus areas. Consider targeted engagement strategy.';
+            } else {
+                return 'Low fit - Significant gaps in alignment. May not be ideal target at this time.';
+            }
+        }
+
+        // Save configuration
+        function saveConfiguration() {
+            const config = {
+                weights: {
+                    individual: parseInt($("#individualWeight").val()) / 100,
+                    company: parseInt($("#companyWeight").val()) / 100,
+                    technical: parseInt($("#technicalWeight").val()) / 100,
+                    market: parseInt($("#marketWeight").val()) / 100
+                },
+                scoring: {
+                    individual: {
+                        jobLevel: document.getElementById('jobLevel').value,
+                        expertise: document.getElementById('expertise').value
+                    },
+                    company: {
+                        size: document.getElementById('companySize').value,
+                        industryAlignment: document.getElementById('industryAlignment').value
+                    },
+                    technical: {
+                        techStack: document.getElementById('techStack').value,
+                        integration: document.getElementById('integration').value
+                    },
+                    market: {
+                        painPoints: document.getElementById('painPoints').value,
+                        growth: document.getElementById('growth').value
+                    }
+                }
+            };
+
+            // Send configuration to server
+            fetch('/save-config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(config)
+            })
+            .then(response => response.json())
+            .then(data => {
+                showNotification('Configuration saved successfully', 'success');
+            })
+            .catch(error => {
+                showNotification('Error saving configuration', 'error');
+                console.error('Error:', error);
+            });
+        }
+
+        // Show notification
+        function showNotification(message, type) {
+            const notification = $(`<div class="fixed top-4 right-4 px-6 py-3 rounded shadow-lg ${
+                type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            }">${message}</div>`);
+            $("body").append(notification);
+            setTimeout(() => {
+                notification.fadeOut(300, function() { $(this).remove(); });
+            }, 3000);
+        }
+
+        // Initialize autocomplete and event handlers
+        $(document).ready(function() {
+            $("#businessModelInput").autocomplete({
+                source: function(request, response) {
+                    var matcher = new RegExp("^" + $.ui.autocomplete.escapeRegex(request.term), "i");
+                    response($.grep(suggestions.businessModel, function(item) {
+                        return matcher.test(item);
+                    }));
+                },
+                minLength: 0,
+                select: function(event, ui) {
+                    if (ui.item) {
+                        $(this).val(ui.item.value);
+                    }
+                    return false;
+                }
+            }).on('focus', function() {
+                $(this).autocomplete("search", "");
+            });
+
+            $("#domainInput").autocomplete({
+                source: function(request, response) {
+                    var matcher = new RegExp("^" + $.ui.autocomplete.escapeRegex(request.term), "i");
+                    response($.grep(suggestions.domainExpertise, function(item) {
+                        return matcher.test(item);
+                    }));
+                },
+                minLength: 0,
+                select: function(event, ui) {
+                    if (ui.item) {
+                        $(this).val(ui.item.value);
+                    }
+                    return false;
+                }
+            }).on('focus', function() {
+                $(this).autocomplete("search", "");
+            });
+
+            $("#growthInput").autocomplete({
+                source: function(request, response) {
+                    var matcher = new RegExp("^" + $.ui.autocomplete.escapeRegex(request.term), "i");
+                    response($.grep(suggestions.growthIndicators, function(item) {
+                        return matcher.test(item);
+                    }));
+                },
+                minLength: 0,
+                select: function(event, ui) {
+                    if (ui.item) {
+                        $(this).val(ui.item.value);
+                    }
+                    return false;
+                }
+            }).on('focus', function() {
+                $(this).autocomplete("search", "");
+            });
+
+            // Enter key handlers
+            $("#businessModelInput").keypress(function(e) {
+                if (e.which === 13) addBusinessModel();
+            });
+            $("#domainInput").keypress(function(e) {
+                if (e.which === 13) addDomain();
+            });
+            $("#growthInput").keypress(function(e) {
+                if (e.which === 13) addGrowthIndicator();
+            });
+        });
+    </script>
+</body>
+</html>
