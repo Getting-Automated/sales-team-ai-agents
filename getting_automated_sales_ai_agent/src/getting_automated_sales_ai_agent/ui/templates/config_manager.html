@@ -770,76 +770,77 @@
 
         async function saveConfiguration() {
     // Get minimum requirements values
-            const companyRevenueMin = $("#minRevenue").val().trim();
-            const companyRevenueMax = $("#maxRevenue").val().trim();
-            const employeeCountMin = parseInt($("#minEmployees").val()) || null;
-            const employeeCountMax = parseInt($("#maxEmployees").val()) || null;
+    const companyRevenueMin = $("#minRevenue").val().trim();
+    const companyRevenueMax = $("#maxRevenue").val().trim();
+    const employeeCountMin = parseInt($("#minEmployees").val()) || null;
+    const employeeCountMax = parseInt($("#maxEmployees").val()) || null;
 
-            const config = {
-                customer_icp: {
-                    profile_overview: $("#targetOverview").val().trim(),
-                    weights: {
-                        individual: parseInt($("#individualWeight").val()) || 25,
-                        company: parseInt($("#companyWeight").val()) || 25,
-                        technical: parseInt($("#technicalWeight").val()) || 25,
-                        market: parseInt($("#marketWeight").val()) || 25
-                    },
-                    tags: {
-                        industries: Array.from(document.querySelectorAll('#industryTags .text-blue-800')).map(tag => tag.textContent.trim()),
-                        business_models: Array.from(document.querySelectorAll('#businessModelTags .text-blue-800')).map(tag => tag.textContent.trim()),
-                        technologies: Array.from(document.querySelectorAll('#techTags .text-blue-800')).map(tag => tag.textContent.trim()),
-                        locations: Array.from(document.querySelectorAll('#locationTags .text-blue-800')).map(tag => tag.textContent.trim()),
-                        growth_stages: Array.from(document.querySelectorAll('#growthStageTags .text-blue-800')).map(tag => tag.textContent.trim())
-                    },
-                    target_departments: Array.from(document.querySelectorAll('#deptTags .text-blue-800')).map(tag => tag.textContent.trim()),
-                    job_titles: Array.from(document.querySelectorAll('#titleTags .text-blue-800')).map(tag => tag.textContent.trim()),
-                    decision_making_authority: Array.from(document.querySelectorAll('#authorityTags .text-blue-800')).map(tag => tag.textContent.trim()),
-                    negative_criteria: Array.from(document.querySelectorAll('#negativeTags .text-blue-800')).map(tag => tag.textContent.trim()),
-                    required_skills: Array.from(document.querySelectorAll('#skillTags .text-blue-800')).map(tag => tag.textContent.trim()),
-                    minimum_requirements: {
-                        ...(companyRevenueMin && { company_revenue_min: parseInt(companyRevenueMin) }),
-                        ...(companyRevenueMax && { company_revenue_max: parseInt(companyRevenueMax) }),
-                        ...(employeeCountMin && { employee_count_min: employeeCountMin }),
-                        ...(employeeCountMax && { employee_count_max: employeeCountMax })
-                    }
-                }
-            };
-
-            try {
-                // Convert config object to YAML string
-                const yamlString = jsyaml.dump(config, {
-                    indent: 2,
-                    lineWidth: -1,
-                    noRefs: true
-                });
-
-                // Use File System Access API to save the file
-                try {
-                    const handle = await window.showSaveFilePicker({
-                        suggestedName: 'config.yaml',
-                        types: [{
-                            description: 'YAML files',
-                            accept: {
-                                'text/yaml': ['.yaml', '.yml']
-                            }
-                        }]
-                    });
-
-                    const writable = await handle.createWritable();
-                    await writable.write(yamlString);
-                    await writable.close();
-
-                    showNotification('Configuration saved successfully', 'success');
-                } catch (err) {
-                    if (err.name !== 'AbortError') {
-                        throw err;
-                    }
-                }
-            } catch (error) {
-                console.error('Error saving configuration:', error);
-                showNotification('Error saving configuration', 'error');
+    const config = {
+        customer_icp: {
+            profile_overview: $("#targetOverview").val().trim(),
+            weights: {
+                individual: parseInt($("#individualWeight").val()) || 25,
+                company: parseInt($("#companyWeight").val()) || 25,
+                technical: parseInt($("#technicalWeight").val()) || 25,
+                market: parseInt($("#marketWeight").val()) || 25
+            },
+            criteria: {  // Changed from tags to criteria
+                industries: Array.from(document.querySelectorAll('#industryTags .text-blue-800')).map(tag => tag.textContent.trim()),
+                business_models: Array.from(document.querySelectorAll('#businessModelTags .text-blue-800')).map(tag => tag.textContent.trim()),
+                technologies: Array.from(document.querySelectorAll('#techTags .text-blue-800')).map(tag => tag.textContent.trim()),
+                locations: Array.from(document.querySelectorAll('#locationTags .text-blue-800')).map(tag => tag.textContent.trim()),
+                growth_stages: Array.from(document.querySelectorAll('#growthStageTags .text-blue-800')).map(tag => tag.textContent.trim())
+            },
+            target_departments: Array.from(document.querySelectorAll('#deptTags .text-blue-800')).map(tag => tag.textContent.trim()),
+            job_titles: Array.from(document.querySelectorAll('#titleTags .text-blue-800')).map(tag => tag.textContent.trim()),
+            decision_making_authority: Array.from(document.querySelectorAll('#authorityTags .text-blue-800')).map(tag => tag.textContent.trim()),
+            negative_criteria: Array.from(document.querySelectorAll('#negativeTags .text-blue-800')).map(tag => tag.textContent.trim()),
+            required_skills: Array.from(document.querySelectorAll('#skillTags .text-blue-800')).map(tag => tag.textContent.trim()),
+            minimum_requirements: {
+                ...(companyRevenueMin && { company_revenue_min: parseInt(companyRevenueMin) }),
+                ...(companyRevenueMax && { company_revenue_max: parseInt(companyRevenueMax) }),
+                ...(employeeCountMin && { employee_count_min: employeeCountMin }),
+                ...(employeeCountMax && { employee_count_max: employeeCountMax })
             }
         }
+    };
+
+    try {
+        // Convert config object to YAML string
+        const yamlString = jsyaml.dump(config, {
+            indent: 2,
+            lineWidth: -1,
+            noRefs: true
+        });
+
+        // Use File System Access API to save the file
+        try {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: 'config.yaml',
+                types: [{
+                    description: 'YAML files',
+                    accept: {
+                        'text/yaml': ['.yaml', '.yml']
+                    }
+                }]
+            });
+
+            const writable = await handle.createWritable();
+            await writable.write(yamlString);
+            await writable.close();
+
+            showNotification('Configuration saved successfully', 'success');
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                throw err;
+            }
+        }
+    } catch (error) {
+        console.error('Error saving configuration:', error);
+        showNotification('Error saving configuration', 'error');
+    }
+}
+
 
         function loadConfiguration(config) {
             if (!config || !config.customer_icp) return;

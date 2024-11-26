@@ -1,68 +1,40 @@
-# config/config.yaml
-
 customer_icp:
-  overview: |
-    Mid to large staffing firms experiencing growth challenges. They typically struggle 
-    with manual processes, data silos, and scaling operations efficiently. Looking to 
-    modernize their tech stack and improve operational efficiency.
-
-  scoring_criteria:
-    company_website_indicators:
-      weight: 0.4
-      factors:
-        product_alignment:
-          high: ["HR software", "ATS", "Recruiting platform"]
-          medium: ["CRM", "Business software"]
-          low: ["Unrelated products"]
-        tech_stack:
-          high: ["Modern tech stack", "API mentions", "Integration focus"]
-          medium: ["Basic tech presence"]
-          low: ["No tech indicators"]
-        market_focus:
-          high: ["Enterprise", "Mid-market"]
-          medium: ["SMB"]
-          low: ["Individual consumers"]
-    
-    role_seniority:
-      weight: 0.3
-      high: ["Director", "VP", "C-Level", "Chief", "Head"]
-      medium: ["Manager", "Lead", "Senior"]
-      low: ["Associate", "Specialist"]
-    
-    technical_fit:
-      weight: 0.3
-      factors:
-        tech_alignment:
-          high: ["Multiple compatible systems"]
-          medium: ["Some compatible systems"]
-          low: ["No compatible systems"]
-        integration_potential:
-          high: ["API-ready", "Integration mentions"]
-          medium: ["Some technical infrastructure"]
-          low: ["Limited technical presence"]
-
-  key_indicators:
-    positive:
-      - Recent funding or expansion
-      - Active digital transformation initiatives
-      - Multiple manual HR/staffing processes
-      - Current use of ATS/HRIS systems
-      - Clear decision-maker identified
-    
-    negative:
-      - Budget below minimum threshold
-      - No clear decision-maker
-      - Too small for solution value
-      - Recent major tech implementation
-
+  profile_overview: Technical stakeholders within Insurance brokers that have a high likelihood of manual processes and procedures that need to be automated.
+  weights:
+    individual: 39
+    company: 37
+    technical: 12
+    market: 12
+  criteria:
+    industries:
+      - Insurance
+      - Employee Benefits
+      - Insurance Broker
+    business_models:
+      - B2B Services
+    technologies:
+      - SaaS
+      - Client Portals
+    locations:
+      - United States
+    growth_stages:
+      - Enterprise
+      - SMB
   target_departments:
-    - HR
-    - Recruiting
-    - Talent Acquisition
+    - IT
+    - Engineering
     - Operations
-    - Technology
-
+  job_titles:
+    - CTO
+    - CIO
+    - Director of IT
+    - COO
+  decision_making_authority:
+    - Final Decision Maker
+    - Key Influencer
+    - Budget Holder
+  negative_criteria: []
+  required_skills: []
   minimum_requirements:
-    company_revenue: 1000000
-    tech_stack: ["ATS", "HRIS"]
-    business_model: ["B2B", "B2B2C"]
+    employee_count_min: 50
+    employee_count_max: 500

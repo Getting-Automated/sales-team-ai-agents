@@ -76,28 +76,28 @@ function calculateScore() {
         none: 0
     };
 
-    // Individual Score
+    // Individual Score (Individual Fit Analyst)
     const individualScore = (
         scoreValues[document.getElementById('roleAlignment').value] +
         scoreValues[document.getElementById('decisionAuthority').value] +
         scoreValues[document.getElementById('departmentFit').value]
     ) / 3 * weights.individual;
 
-    // Company Score
+    // Company Score (Company Fit Analyst)
     const companyScore = (
         scoreValues[document.getElementById('companySize').value] +
         scoreValues[document.getElementById('industryFit').value] +
         scoreValues[document.getElementById('businessModel').value]
     ) / 3 * weights.company;
 
-    // Technical Score
+    // Technical Score (Technical Stack Analyst)
     const technicalScore = (
         scoreValues[document.getElementById('techStack').value] +
         scoreValues[document.getElementById('integration').value] +
         scoreValues[document.getElementById('infrastructure').value]
     ) / 3 * weights.technical;
 
-    // Market Score
+    // Market Score (Pain Point Analyst & Value Proposition Designer insights)
     const marketScore = (
         scoreValues[document.getElementById('marketSize').value] +
         scoreValues[document.getElementById('marketGrowth').value] +
@@ -138,37 +138,38 @@ function removeTag(button) {
     $(button).parent().remove();
 }
 
-function getTags(type) {
-    const tags = [];
+function getCriteria(type) {
+    const criteria = [];
     $(`#${type}Tags span`).each(function() {
-        tags.push($(this).contents().first().text().trim());
+        criteria.push($(this).contents().first().text().trim());
     });
-    return tags;
+    return criteria;
 }
+
 
 // Configuration management
 function getConfiguration() {
     return {
-        weights: {
-            individual: parseInt($("#individualWeight").val()),
-            company: parseInt($("#companyWeight").val()),
-            technical: parseInt($("#technicalWeight").val()),
-            market: parseInt($("#marketWeight").val())
-        },
         customer_icp: {
-            profile_overview: $("#targetOverview").val(),
-            tags: {
-                industries: getTags('industry'),
-                business_models: getTags('businessModel'),
-                technologies: getTags('technology'),
-                locations: getTags('location'),
-                growth_stages: getTags('growthStage')
+            profile_overview: "Technical stakeholders within Insurance brokers that have a high likelihood of manual processes and procedures that need to be automated.",
+            weights: {
+                individual: parseInt($("#individualWeight").val()),
+                company: parseInt($("#companyWeight").val()),
+                technical: parseInt($("#technicalWeight").val()),
+                market: parseInt($("#marketWeight").val())
             },
-            target_departments: getTags('department'),
-            job_titles: getTags('jobTitle'),
-            decision_making_authority: getTags('authority'),
-            required_skills: getTags('skill'),
-            negative_criteria: getTags('negative'),
+            criteria: {
+                industries: getCriteria('industry'),
+                business_models: getCriteria('businessModel'),
+                technologies: getCriteria('technology'),
+                locations: getCriteria('location'),
+                growth_stages: getCriteria('growthStage')
+            },
+            target_departments: getCriteria('department'),
+            job_titles: getCriteria('jobTitle'),
+            decision_making_authority: getCriteria('authority'),
+            negative_criteria: getCriteria('negative'),
+            required_skills: getCriteria('skill'),
             minimum_requirements: {
                 employee_count_min: parseInt($("#minEmployees").val()) || 0,
                 employee_count_max: parseInt($("#maxEmployees").val()) || 999999
@@ -189,42 +190,48 @@ function loadConfiguration(config) {
         updateWeights();
     }
     
-    if (config.customer_icp) {
-        const icp = config.customer_icp;
+    if (config.evaluation_criteria) {
+        const evaluationCriteria = config.evaluation_criteria;
         
         // Load text fields
-        $("#targetOverview").val(icp.profile_overview || '');
-        $("#minEmployees").val(icp.minimum_requirements?.employee_count_min || '');
-        $("#maxEmployees").val(icp.minimum_requirements?.employee_count_max || '');
+        $("#minEmployees").val(evaluationCriteria.company_evaluation.profile.size.min_employees || '');
+        $("#maxEmployees").val(evaluationCriteria.company_evaluation.profile.size.max_employees || '');
         
-        // Load tags
-        function loadTags(tags, type) {
-            if (!tags) return;
+        // Load criteria
+        function loadCriteria(criteria, type) {
+            if (!criteria) return;
             $(`#${type}Tags`).empty();
-            tags.forEach(tag => {
-                const tagHtml = `
+            criteria.forEach(item => {
+                const criteriaHtml = `
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2 mb-2">
-                        ${tag}
+                        ${item}
                         <button onclick="removeTag(this)" class="ml-1 text-blue-400 hover:text-blue-600">&times;</button>
                     </span>
                 `;
-                $(`#${type}Tags`).append(tagHtml);
+                $(`#${type}Tags`).append(criteriaHtml);
             });
         }
         
-        if (icp.tags) {
-            loadTags(icp.tags.industries, 'industry');
-            loadTags(icp.tags.business_models, 'businessModel');
-            loadTags(icp.tags.technologies, 'technology');
-            loadTags(icp.tags.locations, 'location');
-            loadTags(icp.tags.growth_stages, 'growthStage');
+        if (evaluationCriteria.company_evaluation.profile.criteria) {
+            loadCriteria(evaluationCriteria.company_evaluation.profile.criteria.industries, 'industry');
+            loadCriteria(evaluationCriteria.company_evaluation.profile.criteria.business_models, 'businessModel');
+            loadCriteria(evaluationCriteria.company_evaluation.profile.criteria.locations, 'location');
+            loadCriteria(evaluationCriteria.company_evaluation.profile.criteria.growth_stages, 'growthStage');
         }
         
-        loadTags(icp.target_departments, 'department');
-        loadTags(icp.job_titles, 'jobTitle');
-        loadTags(icp.decision_making_authority, 'authority');
-        loadTags(icp.required_skills, 'skill');
-        loadTags(icp.negative_criteria, 'negative');
+        if (evaluationCriteria.individual_evaluation.profile.criteria) {
+            loadCriteria(evaluationCriteria.individual_evaluation.profile.criteria.departments, 'department');
+            loadCriteria(evaluationCriteria.individual_evaluation.profile.criteria.job_titles, 'jobTitle');
+            loadCriteria(evaluationCriteria.individual_evaluation.profile.criteria.required_skills, 'skill');
+        }
+        
+        if (evaluationCriteria.technical_evaluation.profile.criteria) {
+            loadCriteria(evaluationCriteria.technical_evaluation.profile.criteria.technologies, 'technology');
+        }
+        
+        if (evaluationCriteria.market_evaluation.profile.criteria) {
+            loadCriteria(evaluationCriteria.market_evaluation.profile.criteria.negative_criteria, 'negative');
+        }
     }
 }
 

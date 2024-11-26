@@ -25,19 +25,23 @@ class GettingAutomatedSalesAiAgent:
         
         # Load configurations
         config_dir = Path(__file__).parent / "config"
+        print(f"\nDEBUG: Config directory path: {config_dir}")
         
         # Load crew configuration
-        with open(config_dir / "crew.yaml", 'r') as f:
+        crew_config_path = config_dir / "crew.yaml"
+        print(f"DEBUG: Loading crew config from: {crew_config_path}")
+        with open(crew_config_path, 'r') as f:
             self.crew_config = yaml.safe_load(f)
+            print(f"DEBUG: Crew config loaded: {self.crew_config.keys()}")
             
         # Load ICP configuration
-        with open(config_dir / "config.yaml", 'r') as f:
+        icp_config_path = config_dir / "config.yaml"
+        print(f"DEBUG: Loading ICP config from: {icp_config_path}")
+        with open(icp_config_path, 'r') as f:
             self.icp_config = yaml.safe_load(f)
+            print(f"DEBUG: ICP config loaded: {self.icp_config.keys()}")
         
-        # Load pricing configuration
-        with open(config_dir / "pricing.yaml", 'r') as f:
-            pricing_config = yaml.safe_load(f)
-            self.pricing_config = pricing_config['models']  # Access the 'models' key
+        print(f"DEBUG: Full ICP config: {json.dumps(self.icp_config, indent=2)}")
         
         self.inputs = {
             'leads': None,  # Will be set later
@@ -97,10 +101,15 @@ class GettingAutomatedSalesAiAgent:
             raise ValueError("No leads data provided to analyze")
         
         leads = self.inputs['leads']
-        icp_criteria = self.icp_config['customer_icp']['scoring_criteria']
+        print(f"\nDEBUG: Creating tasks with ICP config keys: {self.icp_config.keys()}")
+        
+        # Get the customer_icp section
+        icp_config = self.icp_config.get('customer_icp', {})
+        print(f"DEBUG: Using ICP config: {json.dumps(icp_config, indent=2)}")
         tasks = []
         
         for lead in leads:
+            print(f"\nDEBUG: Processing lead: {json.dumps(lead, indent=2)}")
             print(f"\nCreating tasks for lead: {lead.get('name')} at {lead.get('company')}")
             
             email = lead.get('email', '')
@@ -115,129 +124,114 @@ class GettingAutomatedSalesAiAgent:
                 print(f"Using website domain instead: {domain}")
             
             # Task 1: ICP Analysis
-            tasks.append(
-                Task(
-                    description=f"""
-                    Analyze this lead and their company for ICP fit. Follow these steps exactly:
-                    1. Company Website Analysis: Use CompanyDataTool for domain: {domain}
-                    2. Individual Analysis: Use ProxycurlTool for LinkedIn: {lead.get('linkedin_url')}
-                    3. Score this opportunity using the provided criteria
-                    4. Provide a detailed assessment of their tech stack and growth stage
-                    
-                    LEAD DATA:
-                    {json.dumps(lead, indent=2)}
-                    
-                    SCORING CRITERIA:
-                    {json.dumps(icp_criteria, indent=2)}
-                    """,
-                    expected_output="ICP analysis and company data",
-                    agent=self.agents['customer_icp']
+            try:
+                task_description = f"""
+                Analyze this lead and their company for ICP fit. Follow these steps exactly:
+                1. Company Website Analysis: Use CompanyDataTool for domain: {domain}
+                2. Individual Analysis: Use ProxycurlTool for LinkedIn: {lead.get('linkedin_url')}
+                3. Score this opportunity using the provided criteria
+                4. Provide a detailed assessment of their tech stack and growth stage
+                
+                LEAD DATA:
+                {json.dumps(lead, indent=2)}
+                
+                ICP PROFILE OVERVIEW:
+                {icp_config.get('profile_overview', 'No profile overview available')}
+                
+                SCORING WEIGHTS:
+                Individual: {icp_config.get('weights', {}).get('individual', 0)}%
+                Company: {icp_config.get('weights', {}).get('company', 0)}%
+                Technical: {icp_config.get('weights', {}).get('technical', 0)}%
+                Market: {icp_config.get('weights', {}).get('market', 0)}%
+                
+                TARGET CRITERIA:
+                Industries: {', '.join(icp_config.get('criteria', {}).get('industries', []))}
+                Business Models: {', '.join(icp_config.get('criteria', {}).get('business_models', []))}
+                Technologies: {', '.join(icp_config.get('criteria', {}).get('technologies', []))}
+                Locations: {', '.join(icp_config.get('criteria', {}).get('locations', []))}
+                Growth Stages: {', '.join(icp_config.get('criteria', {}).get('growth_stages', []))}
+                
+                ROLE REQUIREMENTS:
+                Job Titles: {', '.join(icp_config.get('job_titles', []))}
+                Decision Authority: {', '.join(icp_config.get('decision_making_authority', []))}
+                Target Departments: {', '.join(icp_config.get('target_departments', []))}
+                
+                SIZE REQUIREMENTS:
+                Employee Count: {icp_config.get('minimum_requirements', {}).get('employee_count_min', 0)} - {icp_config.get('minimum_requirements', {}).get('employee_count_max', 0)}
+                """
+                
+                tasks.append(
+                    Task(
+                        description=task_description,
+                        expected_output="ICP analysis and company data",
+                        agent=self.agents['company_evaluator']
+                    )
                 )
-            )
-            
-            # Task 2: Pain Point Analysis
-            tasks.append(
-                Task(
-                    description=f"""
-                    Identify pain points using company context and research. Focus on:
-                    1. Mid-market specific challenges for their size ({lead.get('employees', '')} employees)
-                    2. Technology gaps and integration issues with their current stack
-                    3. Growth bottlenecks at their current stage
-                    4. Operational inefficiencies across departments
-                    5. Resource constraints and competitive pressures
-                    
-                    Company Domain: {domain}
-                    Company Website: {lead.get('company_website')}
-                    
-                    LEAD DATA:
-                    {json.dumps(lead, indent=2)}
-                    
-                    PREVIOUS ANALYSIS:
-                    {{result_1}}
-                    
-                    Use Perplexity for targeted research and OpenAI for analysis.
-                    Format findings as structured JSON with evidence and confidence scores.
-                    """,
-                    expected_output="Pain point analysis",
-                    agent=self.agents['pain_point']
+                
+                # Task 2: Pain Point Analysis
+                pain_point_description = f"""
+                Identify pain points using company context and research. Focus on:
+                1. Insurance broker specific challenges
+                2. Technology gaps and integration issues with their current stack
+                3. Growth bottlenecks at their current stage
+                4. Operational inefficiencies across departments
+                5. Manual processes and automation opportunities
+                
+                Company Domain: {domain}
+                Company Website: {lead.get('company_website')}
+                
+                LEAD DATA:
+                {json.dumps(lead, indent=2)}
+                
+                TARGET PROFILE:
+                {icp_config.get('profile_overview', 'No profile overview available')}
+                
+                TARGET DEPARTMENTS:
+                {', '.join(icp_config.get('target_departments', []))}
+                
+                PREVIOUS ANALYSIS:
+                {{result_1}}
+                """
+                
+                tasks.append(
+                    Task(
+                        description=pain_point_description,
+                        expected_output="Pain point analysis",
+                        agent=self.agents['pain_point_analyst']
+                    )
                 )
-            )
-            
-            # Task 3: Solution Templates
-            tasks.append(
-                Task(
-                    description=f"""
-                    Create solution templates based on identified pain points. Consider:
-                    1. Company size: {lead.get('employees')}
-                    2. Industry: {lead.get('industry')}
-                    3. Technology stack: {lead.get('technologies')}
-                    4. Current growth stage and challenges
-                    5. Department-specific needs
-                    
-                    Company Domain: {domain}
-                    
-                    LEAD DATA:
-                    {json.dumps(lead, indent=2)}
-                    
-                    ICP ANALYSIS:
-                    {{result_1}}
-                    
-                    PAIN POINTS:
-                    {{result_2}}
-                    
-                    Customize solutions for their specific context and challenges.
-                    Include implementation considerations and expected outcomes.
-                    """,
-                    expected_output="Customized solution templates",
-                    agent=self.agents['solution_templates']
-                )
-            )
-            
-            # Task 4: Offer Creation
-            tasks.append(
-                Task(
-                    description=f"""
-                    Generate personalized offer using all previous analysis. Include:
-                    1. Value proposition tailored to their specific pain points
-                    2. ROI calculations based on company size and industry
-                    3. Implementation timeline considering their current stage
-                    4. Risk mitigation strategies
-                    5. Competitive differentiators
-                    
-                    Target Contact:
-                    - Name: {lead.get('name')}
-                    - Role: {lead.get('role')}
-                    - Seniority: {lead.get('seniority')}
-                    - Email Domain: {domain}
-                    
-                    LEAD DATA:
-                    {json.dumps(lead, indent=2)}
-                    
-                    ICP ANALYSIS:
-                    {{result_1}}
-                    
-                    PAIN POINTS:
-                    {{result_2}}
-                    
-                    SOLUTION TEMPLATES:
-                    {{result_3}}
-                    
-                    Create a compelling narrative that addresses their specific challenges
-                    and demonstrates clear understanding of their context.
-                    """,
-                    expected_output="Personalized offer",
-                    agent=self.agents['offer_creator']
-                )
-            )
+                
+            except Exception as e:
+                print(f"ERROR creating tasks: {str(e)}")
+                print(f"ERROR traceback: {e.__traceback__}")
+                raise
         
         return tasks
 
     @property
     def crew(self):
+        # Get all agents except manager
+        worker_agents = [
+            self.agents[name] for name in self.agents 
+            if name != 'manager'
+        ]
+        
+        # Create manager agent with no tools
+        manager = Agent(
+            role="Sales Process Manager",
+            goal="Coordinate and oversee the entire sales evaluation and proposal process",
+            backstory="You are an expert sales operations manager who coordinates complex B2B sales processes. You excel at orchestrating multiple specialists to evaluate prospects and create compelling proposals.",
+            verbose=True,
+            allow_delegation=True,  # Enable built-in delegation
+            llm=self.llm
+        )
+        
+        # Create the crew with manager agent
         return Crew(
-            agents=list(self.agents.values()),
+            agents=worker_agents,
             tasks=self.create_tasks(),
             process=Process[self.crew_config['process']['type']],
+            manager_agent=manager,
             verbose=self.crew_config['process']['verbose']
         )
 

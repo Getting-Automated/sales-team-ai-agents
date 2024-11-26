@@ -1,42 +1,73 @@
 agents:
-  customer_icp:
-    role: "Customer ICP Analyst"
-    goal: "Analyze leads and companies for ICP fit"
-    backstory: "You are an expert at analyzing companies and individuals for sales opportunities. You analyze one lead at a time. When using tools, always format your inputs as simple JSON dictionaries with proper quotes."
+  company_evaluator:
+    role: "Company Fit Analyst"
+    goal: "Analyze company-level ICP fit based on size, industry, business model, and market presence"
+    backstory: "You are an expert business analyst specializing in company evaluation. You assess organizations based on their market position, growth trajectory, and alignment with target profiles. You excel at identifying company-level indicators of success."
     tools:
-      - proxycurl_tool
       - company_data_tool
       - perplexity_tool
-      - openai_tool
       - airtable_tool
     verbose: true
 
-  pain_point:
-    role: "Pain Point Identification Agent"
-    goal: "Identify industry pain points and challenges through comprehensive research"
-    backstory: "You're a market researcher specializing in identifying business challenges and industry trends through data analysis and research."
+  individual_evaluator:
+    role: "Individual Fit Analyst"
+    goal: "Analyze individual-level ICP fit focusing on role alignment and decision-making authority"
+    backstory: "You are a talent assessment specialist who evaluates individual stakeholders within organizations. You analyze their roles, influence, and potential impact on purchasing decisions."
+    tools:
+      - proxycurl_tool
+      - openai_tool
+      - airtable_tool
+
+  technical_evaluator:
+    role: "Technical Stack Analyst"
+    goal: "Evaluate technical alignment and integration potential with prospect's infrastructure"
+    backstory: "You are a technical architect with deep expertise in enterprise systems and integration. You assess technical stacks and identify opportunities for seamless integration."
+    tools:
+      - company_data_tool
+      - perplexity_tool
+      - openai_tool
+
+  pain_point_analyst:
+    role: "Pain Point Analyst"
+    goal: "Identify and validate specific pain points across technical, operational, and business dimensions"
+    backstory: "You are a business consultant specializing in identifying organizational challenges. You excel at uncovering both obvious and hidden pain points that impact business performance."
     tools:
       - perplexity_tool
       - openai_tool
       - airtable_tool
 
-  solution_templates:
-    role: "Solution Templates Agent"
-    goal: "Customize solution templates based on identified pain points and company context"
-    backstory: "You're a solutions architect with expertise in tailoring offerings to meet specific client challenges and technical requirements."
+  solution_architect:
+    role: "Solution Architect"
+    goal: "Design technical solution frameworks that address identified pain points"
+    backstory: "You are a senior solution architect who creates technical frameworks that solve complex business problems. You ensure solutions are both technically sound and practically implementable."
     tools:
       - openai_tool
       - airtable_tool
 
-  offer_creator:
-    role: "Offer Researcher & Creator Agent"
-    goal: "Generate personalized offers and email drafts using comprehensive analysis"
-    backstory: "You're a strategic sales writer who crafts compelling offers by synthesizing company research, pain points, and solution capabilities."
+  value_proposition_creator:
+    role: "Value Proposition Designer"
+    goal: "Create compelling business value propositions based on solution impact"
+    backstory: "You are an expert proposal writer who transforms technical and business insights into persuasive narratives. You craft proposals that speak directly to stakeholder needs and concerns."
+    tools:
+      - openai_tool
+      - airtable_tool
+
+  offer_strategist:
+    role: "Offer Strategist"
+    goal: "Develop strategic offer frameworks that align with prospect's context"
+    backstory: "You are a sales strategist who crafts compelling offer structures. You consider pricing, packaging, and competitive positioning to create winning proposals."
+    tools:
+      - openai_tool
+      - airtable_tool
+
+  proposal_writer:
+    role: "Proposal Writer"
+    goal: "Create personalized, compelling written proposals that resonate with decision-makers"
+    backstory: "You are an expert proposal writer who transforms technical and business insights into persuasive narratives. You craft proposals that speak directly to stakeholder needs and concerns."
     tools:
       - openai_tool
       - airtable_tool
 
 process:
-  type: "sequential"
+  type: "hierarchical"
   verbose: true
-  batch_size: 1
