@@ -5,7 +5,6 @@ agents:
     backstory: "You are an expert business analyst specializing in company evaluation. You assess organizations based on their market position, growth trajectory, and alignment with target profiles. You excel at identifying company-level indicators of success."
     tools:
       - company_data_tool
-      - perplexity_tool
       - airtable_tool
     verbose: true
 

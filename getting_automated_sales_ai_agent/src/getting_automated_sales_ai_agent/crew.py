@@ -39,9 +39,9 @@ class GettingAutomatedSalesAiAgent:
         print(f"DEBUG: Loading ICP config from: {icp_config_path}")
         with open(icp_config_path, 'r') as f:
             self.icp_config = yaml.safe_load(f)
-            print(f"DEBUG: ICP config loaded: {self.icp_config.keys()}")
+            # print(f"DEBUG: ICP config loaded: {self.icp_config.keys()}")
         
-        print(f"DEBUG: Full ICP config: {json.dumps(self.icp_config, indent=2)}")
+        # print(f"DEBUG: Full ICP config: {json.dumps(self.icp_config, indent=2)}")
         
         self.inputs = {
             'leads': None,  # Will be set later
