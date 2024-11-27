@@ -28,20 +28,17 @@ class GettingAutomatedSalesAiAgent:
         print(f"\nDEBUG: Config directory path: {config_dir}")
         
         # Load crew configuration
-        crew_config_path = config_dir / "crew.yaml"
+        crew_config_path = config_dir / "agents.yaml"
         print(f"DEBUG: Loading crew config from: {crew_config_path}")
-        with open(crew_config_path, 'r') as f:
+        with open(crew_config_path) as f:
             self.crew_config = yaml.safe_load(f)
-            print(f"DEBUG: Crew config loaded: {self.crew_config.keys()}")
-            
+        print(f"DEBUG: Crew config loaded: {self.crew_config.keys()}")
+        
         # Load ICP configuration
         icp_config_path = config_dir / "config.yaml"
         print(f"DEBUG: Loading ICP config from: {icp_config_path}")
         with open(icp_config_path, 'r') as f:
             self.icp_config = yaml.safe_load(f)
-            # print(f"DEBUG: ICP config loaded: {self.icp_config.keys()}")
-        
-        # print(f"DEBUG: Full ICP config: {json.dumps(self.icp_config, indent=2)}")
         
         self.inputs = {
             'leads': None,  # Will be set later
@@ -83,24 +80,7 @@ class GettingAutomatedSalesAiAgent:
         """Initialize agents from config"""
         agents = {}
         
-        # Initialize worker agents with delegation enabled
-        for agent_id, agent_config in self.crew_config['agents'].items():
-            # Get the tools specified in the config
-            agent_tools = [self.tools[tool] for tool in agent_config.get('tools', [])]
-            
-            # Create the agent with delegation enabled and full config
-            agents[agent_id] = Agent(
-                role=agent_config['role'],
-                goal=agent_config['goal'],
-                backstory=agent_config['backstory'],
-                tools=agent_tools,
-                llm=self.llm,
-                verbose=self.crew_config['process']['verbose'],
-                allow_delegation=True,
-                memory=agent_config.get('memory', True)
-            )
-        
-        # Initialize manager agent with delegation enabled
+        # Initialize manager agent
         manager_config = self.crew_config['manager']
         self.manager_agent = Agent(
             role=manager_config['role'],
@@ -112,6 +92,31 @@ class GettingAutomatedSalesAiAgent:
             memory=True
         )
         
+        # Get list of agent configs (excluding process, llm, and manager)
+        agent_configs = {k: v for k, v in self.crew_config.items() 
+                        if k not in ['process', 'llm', 'manager']}
+        
+        # Initialize worker agents
+        for agent_id, agent_config in agent_configs.items():
+            agent_tools = [
+                self.tools[tool] 
+                for tool in agent_config.get('tools', [])
+                if tool in self.tools
+            ]
+            
+            print(f"\nDEBUG: Initializing {agent_id} with tools: {[tool.__class__.__name__ for tool in agent_tools]}")
+            
+            agents[agent_id] = Agent(
+                role=agent_config['role'],
+                goal=agent_config['goal'],
+                backstory=agent_config['backstory'],
+                tools=agent_tools,
+                llm=self.llm,
+                verbose=self.crew_config['process']['verbose'],
+                allow_delegation=True,
+                memory=agent_config.get('memory', True)
+            )
+        
         return agents
 
     def create_tasks(self):
@@ -119,19 +124,25 @@ class GettingAutomatedSalesAiAgent:
         if not self.inputs.get('leads'):
             raise ValueError("No leads data provided to analyze")
         
+        # Get ICP configuration
+        icp_config = self.icp_config.get('customer_icp', {})
+        
         tasks = []
         for lead in self.inputs['leads']:
             try:
                 # Individual Lead Evaluation Task
                 tasks.append(Task(
                     description=f"""
-                    Evaluate individual lead {lead.get('name')} against ICP criteria:
-                    - Analyze LinkedIn profile and professional background
-                    - Assess decision-making authority
-                    - Evaluate role relevance and seniority
+                    {self.crew_config['individual_evaluator']['backstory']}
+                    
+                    Goal: {self.crew_config['individual_evaluator']['goal']}
+                    
+                    Evaluate individual lead {lead.get('name')} against these ICP criteria:
+                    - Target Departments: {', '.join(icp_config.get('target_departments', []))}
+                    - Job Titles: {', '.join(icp_config.get('job_titles', []))}
+                    - Decision Making Authority: {', '.join(icp_config.get('decision_making_authority', []))}
                     
                     Lead Data: {json.dumps(lead, indent=2)}
-                    ICP Criteria: {json.dumps(self.icp_config.get('individual_criteria', {}), indent=2)}
                     """,
                     expected_output="Detailed individual evaluation report with ICP alignment score",
                     agent=self.agents['individual_evaluator']
@@ -140,13 +151,18 @@ class GettingAutomatedSalesAiAgent:
                 # Company Evaluation Task
                 tasks.append(Task(
                     description=f"""
-                    Evaluate company {lead.get('company')} against ICP criteria:
-                    - Analyze market position and growth trajectory
-                    - Assess organizational fit and technical readiness
-                    - Review company size and industry alignment
+                    {self.crew_config['agents']['company_evaluator']['backstory']}
+                    
+                    Goal: {self.crew_config['agents']['company_evaluator']['goal']}
+                    
+                    Evaluate company {lead.get('company')} against these ICP criteria:
+                    - Industries: {', '.join(icp_config.get('industries', []))}
+                    - Business Models: {', '.join(icp_config.get('business_models', []))}
+                    - Technologies: {', '.join(icp_config.get('technologies', []))}
+                    - Growth Stages: {', '.join(icp_config.get('growth_stages', []))}
+                    - Employee Count Range: {icp_config.get('minimum_requirements', {}).get('employee_count_min')} - {icp_config.get('minimum_requirements', {}).get('employee_count_max')}
                     
                     Company Data: {json.dumps(lead, indent=2)}
-                    ICP Criteria: {json.dumps(self.icp_config.get('company_criteria', {}), indent=2)}
                     """,
                     expected_output="Comprehensive company analysis with fit assessment",
                     agent=self.agents['company_evaluator']
@@ -155,10 +171,16 @@ class GettingAutomatedSalesAiAgent:
                 # Pain Point Analysis Task
                 tasks.append(Task(
                     description=f"""
-                    Identify and analyze pain points for {lead.get('company')}:
-                    - Research industry-specific challenges
-                    - Analyze company-specific issues
-                    - Identify solution opportunities
+                    {self.crew_config['agents']['pain_point_analyst']['backstory']}
+                    
+                    Goal: {self.crew_config['agents']['pain_point_analyst']['goal']}
+                    
+                    Profile Overview: {icp_config.get('profile_overview', '')}
+                    
+                    Analyze pain points for {lead.get('company')} considering:
+                    - Industry challenges in {lead.get('industry')}
+                    - Technical infrastructure needs
+                    - Growth-related operational challenges
                     
                     Previous Evaluations: {{context.individual_evaluation}}
                     Company Analysis: {{context.company_evaluation}}
@@ -171,9 +193,13 @@ class GettingAutomatedSalesAiAgent:
                 # Offer Creation Task
                 tasks.append(Task(
                     description=f"""
+                    {self.crew_config['agents']['offer_creator']['backstory']}
+                    
+                    Goal: {self.crew_config['agents']['offer_creator']['goal']}
+                    
                     Create personalized solution offering for {lead.get('company')}:
                     - Address identified pain points
-                    - Create tailored solutions
+                    - Align with ICP profile: {icp_config.get('profile_overview', '')}
                     - Demonstrate clear value proposition and ROI
                     
                     Pain Points: {{context.pain_points}}
@@ -187,7 +213,11 @@ class GettingAutomatedSalesAiAgent:
                 # Email Campaign Task
                 tasks.append(Task(
                     description=f"""
-                    Generate personalized email campaign for {lead.get('name')}:
+                    {self.crew_config['agents']['email_campaign']['backstory']}
+                    
+                    Goal: {self.crew_config['agents']['email_campaign']['goal']}
+                    
+                    Generate personalized email campaign for {lead.get('name')} at {lead.get('company')}:
                     - Create compelling initial outreach
                     - Design follow-up sequence
                     - Incorporate pain points and solutions
