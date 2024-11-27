@@ -1,72 +1,68 @@
+process:
+  type: "sequential"
+  verbose: true
+
 agents:
   company_evaluator:
-    role: "Company Fit Analyst"
-    goal: "Analyze company-level ICP fit based on size, industry, business model, and market presence"
-    backstory: "You are an expert business analyst specializing in company evaluation. You assess organizations based on their market position, growth trajectory, and alignment with target profiles. You excel at identifying company-level indicators of success."
+    role: "Company Evaluator"
+    goal: "Evaluate companies against our ideal customer profile criteria"
+    backstory: "You are an expert at analyzing companies to determine their fit with our solutions. You focus on industry alignment, company size, growth stage, and market presence."
     tools:
       - company_data_tool
+      - proxycurl_tool
       - airtable_tool
-    verbose: true
 
   individual_evaluator:
-    role: "Individual Fit Analyst"
-    goal: "Analyze individual-level ICP fit focusing on role alignment and decision-making authority"
-    backstory: "You are a talent assessment specialist who evaluates individual stakeholders within organizations. You analyze their roles, influence, and potential impact on purchasing decisions."
+    role: "Individual Prospect Evaluator"
+    goal: "Evaluate individual prospects for decision-making authority and fit"
+    backstory: "You are skilled at analyzing professional profiles to determine a person's influence and role in purchasing decisions. You understand organizational dynamics and buying processes."
     tools:
       - proxycurl_tool
       - openai_tool
       - airtable_tool
 
-  technical_evaluator:
-    role: "Technical Stack Analyst"
-    goal: "Evaluate technical alignment and integration potential with prospect's infrastructure"
-    backstory: "You are a technical architect with deep expertise in enterprise systems and integration. You assess technical stacks and identify opportunities for seamless integration."
-    tools:
-      - company_data_tool
-      - perplexity_tool
-      - openai_tool
-
   pain_point_analyst:
     role: "Pain Point Analyst"
-    goal: "Identify and validate specific pain points across technical, operational, and business dimensions"
+    goal: "Identify and analyze pain points specific to the prospect's industry and situation"
     backstory: "You are a business consultant specializing in identifying organizational challenges. You excel at uncovering both obvious and hidden pain points that impact business performance."
     tools:
       - perplexity_tool
       - openai_tool
       - airtable_tool
 
-  solution_architect:
-    role: "Solution Architect"
-    goal: "Design technical solution frameworks that address identified pain points"
-    backstory: "You are a senior solution architect who creates technical frameworks that solve complex business problems. You ensure solutions are both technically sound and practically implementable."
+  offer_creator:
+    role: "Solution Designer"
+    goal: "Create customized offers based on prospect analysis"
+    backstory: "You are an expert at crafting tailored solutions that address specific customer pain points. You excel at articulating value propositions and ROI calculations."
     tools:
       - openai_tool
       - airtable_tool
 
-  value_proposition_creator:
-    role: "Value Proposition Designer"
-    goal: "Create compelling business value propositions based on solution impact"
-    backstory: "You are an expert proposal writer who transforms technical and business insights into persuasive narratives. You craft proposals that speak directly to stakeholder needs and concerns."
+  email_campaign:
+    role: "Email Campaign Specialist"
+    goal: "Create personalized multi-step email campaigns"
+    backstory: "You are an expert at creating engaging email sequences that convert. You know how to craft compelling messages that speak to prospect's needs while maintaining a professional tone."
     tools:
       - openai_tool
       - airtable_tool
 
-  offer_strategist:
-    role: "Offer Strategist"
-    goal: "Develop strategic offer frameworks that align with prospect's context"
-    backstory: "You are a sales strategist who crafts compelling offer structures. You consider pricing, packaging, and competitive positioning to create winning proposals."
-    tools:
-      - openai_tool
-      - airtable_tool
-
-  proposal_writer:
-    role: "Proposal Writer"
-    goal: "Create personalized, compelling written proposals that resonate with decision-makers"
-    backstory: "You are an expert proposal writer who transforms technical and business insights into persuasive narratives. You craft proposals that speak directly to stakeholder needs and concerns."
-    tools:
-      - openai_tool
-      - airtable_tool
-
-process:
-  type: "hierarchical"
-  verbose: true
+tasks:
+  evaluate_company:
+    description: "Evaluate company fit"
+    agent: "company_evaluator"
+    
+  evaluate_individual:
+    description: "Evaluate individual prospect"
+    agent: "individual_evaluator"
+    
+  analyze_pain_points:
+    description: "Identify pain points"
+    agent: "pain_point_analyst"
+    
+  create_offer:
+    description: "Create customized offer"
+    agent: "offer_creator"
+    
+  create_campaign:
+    description: "Design email campaign"
+    agent: "email_campaign"

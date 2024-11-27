@@ -101,71 +101,64 @@ def pain_point_agent_logic(self):
     ICP ANALYSIS INSIGHTS:
     {json.dumps(icp_analysis, indent=2)}
     
-    COMPANY DATA INSIGHTS:
-    {json.dumps(company_data, indent=2)}
-    
     RESEARCH FINDINGS:
     {combined_research}
     
-    Based on this comprehensive context, identify:
-    1. Mid-market specific challenges they're likely facing given their description and focus areas
-    2. Growth bottlenecks at their current stage and scale
-    3. Technology gaps and integration issues specific to their current stack
-    4. Operational inefficiencies across their identified departments
-    5. Resource constraints typical for their size and industry position
-    6. Competitive pressures in their specific market segment
+    Based on this context, identify and categorize pain points into:
+    1. Technical Challenges
+    2. Operational Inefficiencies
+    3. Process Bottlenecks
+    4. Automation Opportunities
     
-    Format as JSON with these keys:
-    - mid_market_challenges: Array of size-specific challenges
-    - growth_bottlenecks: Array of stage-specific growth issues
-    - tech_gaps: Array of technology-related challenges
-    - operational_issues: Object with department-specific problems
-    - resource_constraints: Array of resource-related challenges
-    - competitive_pressures: Array of market segment challenges
-    - evidence: Object with sources and citations
-    - confidence_score: Object with scores per category
-    - context_relevance: Brief explanation of how company description influenced findings
+    For each pain point:
+    - Describe the specific challenge
+    - Rate potential impact (high/medium/low)
+    - Assess implementation complexity
+    - Suggest practical solutions
     """
     
-    # Analyze with OpenAI
     try:
-        analysis_result = self.openai_tool._run(
-            prompt=analysis_prompt,
-            max_tokens=2500,
-            temperature=0.5
-        )
+        # Get detailed pain point analysis
+        analysis_result = self.openai_tool._run(analysis_prompt)
         
-        analysis = json.loads(analysis_result)
-        
-        # Store in Airtable
+        # Store results in Airtable for tracking
         airtable_data = {
             'Company': company,
             'Industry': industry,
-            'SpecificChallenges': json.dumps(analysis.get('specific_challenges', [])),
-            'IndustryChallenges': json.dumps(analysis.get('industry_challenges', [])),
-            'TechStackIssues': json.dumps(analysis.get('tech_stack_issues', [])),
-            'GrowthObstacles': json.dumps(analysis.get('growth_obstacles', [])),
-            'CompetitivePressures': json.dumps(analysis.get('competitive_pressures', [])),
-            'Evidence': json.dumps(analysis.get('evidence', {})),
-            'ConfidenceScores': json.dumps(analysis.get('confidence_score', {})),
-            'DateAnalyzed': datetime.now().isoformat()
+            'Analysis_Date': datetime.now().isoformat(),
+            'Pain_Points': analysis_result,
+            'Research_Context': combined_research
         }
+        self.airtable_tool._run(json.dumps(airtable_data))
         
-        self.airtable_tool._run('create', 'PainPointsAnalysis', airtable_data)
-        
-        return json.dumps(analysis, indent=2)
+        return {
+            'company': company,
+            'analysis_date': datetime.now().isoformat(),
+            'pain_points': analysis_result,
+            'research_context': research_results
+        }
         
     except Exception as e:
         print(f"Error in pain point analysis: {str(e)}")
-        return f"Error during analysis: {str(e)}"
+        return {
+            'error': str(e),
+            'partial_research': research_results
+        }
 
 def get_pain_point_agent(config, tools, llm):
-    agent_conf = config['pain_point_agent']
-    agent_instance = Agent(
+    """Create a pain point identification agent with research capabilities"""
+    return Agent(
+        role='Pain Point Identification Specialist',
+        goal='Identify and analyze company pain points through comprehensive research and context analysis',
+        backstory="""You are an expert business analyst specializing in identifying operational, 
+        technical, and process-related challenges in organizations. You combine industry research, 
+        technical assessment, and business context to uncover actionable pain points and 
+        automation opportunities.""",
+        tools=[
+            tools['perplexity_tool'],
+            tools['openai_tool'],
+            tools['airtable_tool']
+        ],
         llm=llm,
-        tools=tools,
-        **agent_conf
+        verbose=config['process']['verbose']
     )
-    # Assign custom logic to the agent's run method
-    agent_instance.run = pain_point_agent_logic.__get__(agent_instance, Agent)
-    return agent_instance

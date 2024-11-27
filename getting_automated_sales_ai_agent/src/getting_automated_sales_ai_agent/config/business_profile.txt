@@ -1,0 +1,43 @@
+# Company Profile
+# Please fill out the information below to help our AI agents understand your business better.
+# Lines starting with '>' are where you should add your information.
+# You can add multiple items by adding new lines with '>' at the start.
+
+Company Name:
+> Getting Automated
+
+What does your company do? (Brief description)
+> We provide automation solutions for insurance and employee benefits companies, helping them streamline their manual processes.
+
+What are your main products or services? List each one and what it does.
+> Process Automation Solutions - We automate manual insurance and benefits processes end-to-end
+> Integration Services - We connect and modernize existing insurance systems
+
+What problems do you solve for your clients? List the main pain points you address.
+> Manual data entry that takes too much time
+> High error rates in claims processing
+> Slow customer service response times
+> Legacy systems that don't talk to each other
+> Difficulty handling increased workload without hiring more staff
+
+What makes your company special? List your main selling points.
+> We can reduce processing time by up to 80%
+> Our solutions have 99% accuracy rates
+> Clients typically see ROI within 3-6 months
+> We have deep insurance industry expertise
+> We create custom solutions for each client
+
+Share some success stories. What results have you achieved for clients?
+> A mid-size insurance broker reduced their claims processing time from 2-3 days to just 2 hours
+> A large benefits administrator reduced enrollment errors by 95% and greatly improved customer satisfaction
+
+How do you typically work with new clients? Describe your process.
+> First, we analyze their current processes (1-2 weeks)
+> Then, we design a custom solution (2-3 weeks)
+> Finally, we implement and train their team (4-12 weeks)
+
+What results can clients typically expect?
+> 80% reduction in processing time
+> 99% accuracy in automated processes
+> 50% reduction in operational costs
+> ROI within 3-6 months

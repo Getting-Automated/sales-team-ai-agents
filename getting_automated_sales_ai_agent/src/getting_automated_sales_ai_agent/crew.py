@@ -101,16 +101,16 @@ class GettingAutomatedSalesAiAgent:
             raise ValueError("No leads data provided to analyze")
         
         leads = self.inputs['leads']
-        print(f"\nDEBUG: Creating tasks with ICP config keys: {self.icp_config.keys()}")
+        # print(f"\nDEBUG: Creating tasks with ICP config keys: {self.icp_config.keys()}")
         
         # Get the customer_icp section
         icp_config = self.icp_config.get('customer_icp', {})
-        print(f"DEBUG: Using ICP config: {json.dumps(icp_config, indent=2)}")
+        # print(f"DEBUG: Using ICP config: {json.dumps(icp_config, indent=2)}")
         tasks = []
         
         for lead in leads:
-            print(f"\nDEBUG: Processing lead: {json.dumps(lead, indent=2)}")
-            print(f"\nCreating tasks for lead: {lead.get('name')} at {lead.get('company')}")
+            # print(f"\nDEBUG: Processing lead: {json.dumps(lead, indent=2)}")
+            # print(f"\nCreating tasks for lead: {lead.get('name')} at {lead.get('company')}")
             
             email = lead.get('email', '')
             domain = email.split('@')[-1] if email else None
@@ -160,51 +160,66 @@ class GettingAutomatedSalesAiAgent:
                 Employee Count: {icp_config.get('minimum_requirements', {}).get('employee_count_min', 0)} - {icp_config.get('minimum_requirements', {}).get('employee_count_max', 0)}
                 """
                 
-                tasks.append(
-                    Task(
-                        description=task_description,
-                        expected_output="ICP analysis and company data",
-                        agent=self.agents['company_evaluator']
-                    )
+                icp_analysis_task = Task(
+                    description=task_description,
+                    agent=self.agents['customer_icp_agent']
                 )
+                tasks.append(icp_analysis_task)
                 
                 # Task 2: Pain Point Analysis
-                pain_point_description = f"""
-                Identify pain points using company context and research. Focus on:
-                1. Insurance broker specific challenges
-                2. Technology gaps and integration issues with their current stack
-                3. Growth bottlenecks at their current stage
-                4. Operational inefficiencies across departments
-                5. Manual processes and automation opportunities
-                
-                Company Domain: {domain}
-                Company Website: {lead.get('company_website')}
-                
-                LEAD DATA:
-                {json.dumps(lead, indent=2)}
-                
-                TARGET PROFILE:
-                {icp_config.get('profile_overview', 'No profile overview available')}
-                
-                TARGET DEPARTMENTS:
-                {', '.join(icp_config.get('target_departments', []))}
-                
-                PREVIOUS ANALYSIS:
-                {{result_1}}
-                """
-                
-                tasks.append(
-                    Task(
-                        description=pain_point_description,
-                        expected_output="Pain point analysis",
-                        agent=self.agents['pain_point_analyst']
-                    )
+                pain_point_task = Task(
+                    description=f"""
+                    Analyze the company's pain points based on their profile and industry:
+                    1. Research common challenges in their industry
+                    2. Identify specific pain points from their tech stack and growth stage
+                    3. Prioritize pain points based on our solution's capabilities
+                    
+                    Company: {lead.get('company')}
+                    Industry: {lead.get('industry')}
+                    Tech Stack: {lead.get('technologies')}
+                    """,
+                    agent=self.agents['pain_point_agent']
                 )
+                tasks.append(pain_point_task)
+                
+                # Task 3: Solution Template Customization
+                solution_task = Task(
+                    description=f"""
+                    Customize our solution templates based on:
+                    1. The ICP analysis results
+                    2. Identified pain points
+                    3. Company's specific context and needs
+                    
+                    Focus on demonstrating clear value and ROI.
+                    """,
+                    agent=self.agents['solution_templates_agent']
+                )
+                tasks.append(solution_task)
+                
+                # Task 4: Email Campaign Generation
+                email_task = Task(
+                    description=f"""
+                    Generate a personalized cold email sequence:
+                    1. Create an initial email focusing on their specific pain points
+                    2. Prepare two follow-up templates
+                    3. Ensure each email is unique and builds on previous context
+                    
+                    Lead Context:
+                    Name: {lead.get('name')}
+                    Role: {lead.get('role')}
+                    Company: {lead.get('company')}
+                    Industry: {lead.get('industry')}
+                    
+                    Use the identified pain points and customized solution to craft compelling messages.
+                    Keep emails concise, professional, and focused on value.
+                    """,
+                    agent=self.agents['email_campaign_agent']
+                )
+                tasks.append(email_task)
                 
             except Exception as e:
-                print(f"ERROR creating tasks: {str(e)}")
-                print(f"ERROR traceback: {e.__traceback__}")
-                raise
+                print(f"Error creating tasks for lead {lead.get('name')}: {str(e)}")
+                continue
         
         return tasks
 
@@ -212,19 +227,23 @@ class GettingAutomatedSalesAiAgent:
     def crew(self):
         # Get all agents except manager
         worker_agents = [
-            self.agents[name] for name in self.agents 
+            agent for name, agent in self.agents.items()
             if name != 'manager'
         ]
         
-        # Create manager agent with no tools
+        # Create manager agent with delegation enabled
         manager = Agent(
             role="Sales Process Manager",
             goal="Coordinate and oversee the entire sales evaluation and proposal process",
-            backstory="You are an expert sales operations manager who coordinates complex B2B sales processes. You excel at orchestrating multiple specialists to evaluate prospects and create compelling proposals.",
-            verbose=True,
-            allow_delegation=True,  # Enable built-in delegation
+            backstory="You are an expert sales operations manager who coordinates complex B2B sales processes. You excel at orchestrating multiple specialists to evaluate prospects and create compelling outreach campaigns.",
+            allow_delegation=True,  # Enable delegation
+            verbose=self.crew_config['process']['verbose'],
             llm=self.llm
         )
+
+        # Enable delegation for worker agents
+        for agent in worker_agents:
+            agent.allow_delegation = True
         
         # Create the crew with manager agent
         return Crew(
@@ -235,7 +254,118 @@ class GettingAutomatedSalesAiAgent:
             verbose=self.crew_config['process']['verbose']
         )
 
-    def calculate_costs(self, crew_usage_metrics, model="gpt-4o-mini", use_batch=False, use_cached=False):
+    def process_lead(self, lead_data):
+        """Process a lead through the complete sales workflow"""
+        results = {}
+        
+        # Step 1: Company Evaluation
+        company_task = Task(
+            description="""Evaluate the company against our criteria. Focus on:
+            - Industry alignment
+            - Company size and growth stage
+            - Location and market presence
+            - Technical infrastructure""",
+            context={"lead_data": lead_data},
+            agent=self.agents['company_evaluator']
+        )
+        company_result = self.crew.execute_task(company_task)
+        results['company_evaluation'] = company_result
+        
+        # Step 2: Individual Evaluation
+        individual_task = Task(
+            description="""Evaluate the individual prospect. Consider:
+            - Role and decision-making authority
+            - Department and responsibilities
+            - Professional background and experience
+            - Potential influence in buying process""",
+            context={"lead_data": lead_data},
+            agent=self.agents['individual_evaluator']
+        )
+        individual_result = self.crew.execute_task(individual_task)
+        results['individual_evaluation'] = individual_result
+        
+        # Only proceed if both evaluations are positive
+        if "recommend proceeding" in company_result.lower() and "recommend proceeding" in individual_result.lower():
+            # Step 3: Pain Point Analysis
+            pain_point_task = Task(
+                description="""Analyze industry and company-specific pain points. Focus on:
+                - Common challenges in their industry
+                - Specific issues based on company size
+                - Technical and operational bottlenecks
+                - Growth-related pain points""",
+                context={
+                    "lead_data": lead_data,
+                    "company_evaluation": company_result,
+                    "individual_evaluation": individual_result
+                },
+                agent=self.agents['pain_point_analyst']
+            )
+            pain_points = self.crew.execute_task(pain_point_task)
+            results['pain_points'] = pain_points
+            
+            # Step 4: Create Customized Offer
+            offer_task = Task(
+                description="""Create a customized offer based on all analyses. Include:
+                - Specific solutions for identified pain points
+                - Value propositions aligned with their needs
+                - ROI calculations and benefits
+                - Implementation approach""",
+                context={
+                    "lead_data": lead_data,
+                    "company_evaluation": company_result,
+                    "individual_evaluation": individual_result,
+                    "pain_points": pain_points
+                },
+                agent=self.agents['offer_creator']
+            )
+            offer = self.crew.execute_task(offer_task)
+            results['offer'] = offer
+            
+            # Step 5: Generate Email Campaign
+            campaign_task = Task(
+                description="""Create a multi-step email campaign sequence that:
+                - Personalizes messaging based on the individual's role
+                - Addresses specific pain points identified
+                - Presents the customized offer effectively
+                - Includes follow-up strategy and timing""",
+                context={
+                    "lead_data": lead_data,
+                    "company_evaluation": company_result,
+                    "individual_evaluation": individual_result,
+                    "pain_points": pain_points,
+                    "offer": offer
+                },
+                agent=self.agents['email_campaign']
+            )
+            campaign = self.crew.execute_task(campaign_task)
+            results['email_campaign'] = campaign
+            
+            # Store results in Airtable
+            try:
+                self.agents['airtable_tool']._run('create', 'CampaignsTable', {
+                    'lead_name': lead_data.get('name'),
+                    'company': lead_data.get('company'),
+                    'evaluations': {
+                        'company': company_result,
+                        'individual': individual_result
+                    },
+                    'pain_points': pain_points,
+                    'offer': offer,
+                    'campaign': campaign,
+                    'status': 'ready_to_send'
+                })
+            except Exception as e:
+                print(f"Error storing campaign in Airtable: {str(e)}")
+            
+            return results
+        else:
+            return {
+                'company_evaluation': company_result,
+                'individual_evaluation': individual_result,
+                'status': 'Lead does not meet criteria. No further action taken.'
+            }
+
+    def calculate_costs(self, crew_usage_metrics, model="gpt-4o", use_batch=False, use_cached=False):
         """
         Calculate the costs based on crew usage metrics and token pricing.
         
