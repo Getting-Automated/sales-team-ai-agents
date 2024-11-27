@@ -78,40 +78,54 @@ class AirtableTool(BaseTool):
         """Clean and validate data against the table schema"""
         schemas = {
             "Leads": {
-                "Lead ID": "singleLineText",
-                "Name": "singleLineText",
-                "Email": "email",
-                "Company": "singleLineText",
-                "Role": "singleLineText",
-                "Lead Score": "number",
-                "Lead Tier": ["High", "Medium", "Low"]
+                "Lead ID": str,
+                "Name": str,
+                "Email": str,
+                "Company": str,
+                "Title": str,
+                "LinkedIn URL": str,
+                "Company LinkedIn": str,
+                "Raw Data": str
             },
-            "Campaign Drafts": {
-                "Lead ID": "singleLineText",
-                "Campaign Name": "singleLineText",
-                "Campaign Tier": ["High", "Medium", "Low"],
-                "Sequence Position": "number",
-                "Wait Time": ["Same Day", "1 Day", "2 Days", "3 Days", "5 Days", "1 Week", "2 Weeks"],
-                "Email Draft": "multilineText",
-                "Status": ["Drafted", "Ready to Send", "Sent", "Engaged", "Completed", "Stopped"]
+            "Lead Evaluations": {
+                "Lead ID": str,
+                "Individual Score": float,
+                "Company Score": float,
+                "Overall Score": float,
+                "Decision Making Level": ["Final Decision Maker", "Key Influencer", "Budget Holder", "Individual Contributor"],
+                "Department Match": list,
+                "Industry Match": list,
+                "Technical Analysis": str,
+                "Company Analysis": str,
+                "Evaluation Summary": str
             },
             "Pain Points": {
-                "Industry": "singleLineText",
-                "Pain Points": "multilineText",
-                "Keywords": "multilineText",
-                "Highlighted Quotes": "multilineText"
+                "Lead ID": str,
+                "Primary Pain Points": str,
+                "Technical Challenges": str,
+                "Operational Challenges": str,
+                "Industry Specific Issues": str,
+                "Analysis": str,
+                "Priority Level": ["High", "Medium", "Low"]
             },
-            "Offers": {
-                "Offer ID": "singleLineText",
-                "Offer Name": "singleLineText",
-                "Category": ["Time & Attendance", "Payroll & Billing", "Candidate Management", 
-                           "Client Management", "Compliance", "Reporting"],
-                "Description": "multilineText",
-                "Key Benefits": "multilineText",
-                "Industry Fit": "multilineText",
-                "Customization Options": "multilineText",
-                "Target Client Type": ["Small Staffing", "Mid-size Staffing", "Enterprise Staffing",
-                                     "Healthcare Staffing", "IT Staffing", "Industrial Staffing"]
+            "Solution Offers": {
+                "Lead ID": str,
+                "Solution Name": str,
+                "Value Proposition": str,
+                "Key Benefits": str,
+                "Technical Fit": str,
+                "ROI Analysis": str,
+                "Customization Notes": str
+            },
+            "Email Campaigns": {
+                "Lead ID": str,
+                "Email Subject": str,
+                "Email Body": str,
+                "Sequence Number": int,
+                "Wait Days": int,
+                "Personalization Notes": str,
+                "Pain Points Addressed": str,
+                "Call To Action": str
             }
         }
 
@@ -125,15 +139,19 @@ class AirtableTool(BaseTool):
             if field in schema:
                 field_type = schema[field]
                 
-                if isinstance(field_type, list) and value not in field_type:
-                    continue
-                
-                if field_type == "number" and isinstance(value, str):
+                if isinstance(field_type, list):
+                    if isinstance(value, list):
+                        cleaned_data[field] = [v for v in value if v in field_type]
+                    elif value in field_type:
+                        cleaned_data[field] = value
+                elif field_type in [int, float] and isinstance(value, str):
                     try:
-                        value = float(value)
+                        cleaned_data[field] = field_type(value)
                     except ValueError:
                         continue
-                
-                cleaned_data[field] = value
+                elif isinstance(value, field_type):
+                    cleaned_data[field] = value
+                elif field_type == str:
+                    cleaned_data[field] = str(value)
 
         return cleaned_data

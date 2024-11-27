@@ -5,133 +5,87 @@ WORKSPACE_ID = "wspvmw70ZPF8XuEtI"
 # Table names
 class Tables:
     LEADS = "Leads"
-    CAMPAIGNS = "Campaign Drafts"
+    EVALUATIONS = "Lead Evaluations"
     PAIN_POINTS = "Pain Points"
-    OFFERS = "Offers"
+    OFFERS = "Solution Offers"
+    CAMPAIGNS = "Email Campaigns"
 
 # Table structure
 TABLE_SCHEMAS = {
     Tables.LEADS: [
-        {"name": "Lead ID", "type": "singleLineText", "options": {"formatting": {}}},
-        {"name": "Name", "type": "singleLineText", "options": {"formatting": {}}},
-        {"name": "Email", "type": "email", "options": {"formatting": {}}},
-        {"name": "Company", "type": "singleLineText", "options": {"formatting": {}}},
-        {"name": "Role", "type": "singleLineText", "options": {"formatting": {}}},
-        {"name": "Lead Score", "type": "number", "options": {
-            "precision": 1
-        }},
-        {"name": "Lead Tier", "type": "singleSelect", "options": {
-            "choices": [
-                {"name": "High"},
-                {"name": "Medium"},
-                {"name": "Low"}
-            ]
-        }},
-        {"name": "Seniority", "type": "singleLineText"},
-        {"name": "Departments", "type": "multilineText"},
-        {"name": "Location", "type": "singleLineText"},
-        {"name": "Company Size", "type": "number"},
-        {"name": "Annual Revenue", "type": "singleLineText"},
-        {"name": "Technologies", "type": "multilineText"},
-        {"name": "Keywords", "type": "multilineText"},
-        {"name": "Company Description", "type": "multilineText"},
-        {"name": "Technical Fit Score", "type": "number", "options": {"precision": 1}},
-        {"name": "Technical Analysis", "type": "multilineText"},
-        {"name": "Pain Points", "type": "multilineText"},
-        {"name": "Matching Criteria", "type": "multilineText"},
-        {"name": "Recommended Approach", "type": "multilineText"},
-        {"name": "Next Steps", "type": "multilineText"},
-        {"name": "Justification", "type": "multilineText"},
+        {"name": "Lead ID", "type": "singleLineText"},
+        {"name": "Name", "type": "singleLineText"},
+        {"name": "Email", "type": "email"},
+        {"name": "Company", "type": "singleLineText"},
+        {"name": "Title", "type": "singleLineText"},
         {"name": "LinkedIn URL", "type": "url"},
         {"name": "Company LinkedIn", "type": "url"},
-        {"name": "Company Website", "type": "url"},
-        {"name": "Enriched Profile", "type": "multilineText"}
+        {"name": "Raw Data", "type": "multilineText"}
     ],
-    Tables.CAMPAIGNS: [
-        {"name": "Lead ID", "type": "singleLineText", "options": {"formatting": {}}},
-        {"name": "Campaign Name", "type": "singleLineText", "options": {"formatting": {}}},
-        {"name": "Campaign Tier", "type": "singleSelect", "options": {
+    Tables.EVALUATIONS: [
+        {"name": "Lead ID", "type": "singleLineText"},
+        {"name": "Individual Score", "type": "number", "options": {"precision": 1}},
+        {"name": "Company Score", "type": "number", "options": {"precision": 1}},
+        {"name": "Overall Score", "type": "number", "options": {"precision": 1}},
+        {"name": "Decision Making Level", "type": "singleSelect", "options": {
+            "choices": [
+                {"name": "Final Decision Maker"},
+                {"name": "Key Influencer"},
+                {"name": "Budget Holder"},
+                {"name": "Individual Contributor"}
+            ]
+        }},
+        {"name": "Department Match", "type": "multipleSelects", "options": {
+            "choices": [
+                {"name": "IT"},
+                {"name": "Engineering"},
+                {"name": "Operations"}
+            ]
+        }},
+        {"name": "Industry Match", "type": "multipleSelects", "options": {
+            "choices": [
+                {"name": "Insurance"},
+                {"name": "Employee Benefits"},
+                {"name": "Insurance Broker"}
+            ]
+        }},
+        {"name": "Technical Analysis", "type": "multilineText"},
+        {"name": "Company Analysis", "type": "multilineText"},
+        {"name": "Evaluation Summary", "type": "multilineText"}
+    ],
+    Tables.PAIN_POINTS: [
+        {"name": "Lead ID", "type": "singleLineText"},
+        {"name": "Primary Pain Points", "type": "multilineText"},
+        {"name": "Technical Challenges", "type": "multilineText"},
+        {"name": "Operational Challenges", "type": "multilineText"},
+        {"name": "Industry Specific Issues", "type": "multilineText"},
+        {"name": "Analysis", "type": "multilineText"},
+        {"name": "Priority Level", "type": "singleSelect", "options": {
             "choices": [
                 {"name": "High"},
                 {"name": "Medium"},
                 {"name": "Low"}
             ]
-        }},
-        {"name": "Sequence Position", "type": "number", "options": {
-            "precision": 0,
-        }},
-        {"name": "Wait Time", "type": "singleSelect", "options": {
-            "choices": [
-                {"name": "Same Day"},
-                {"name": "1 Day"},
-                {"name": "2 Days"},
-                {"name": "3 Days"},
-                {"name": "5 Days"},
-                {"name": "1 Week"},
-                {"name": "2 Weeks"}
-            ]
-        }},
-        {"name": "Email Draft", "type": "multilineText", "options": {}},
-        {"name": "Subject Line Variations", "type": "multilineText", "options": {}},
-        {"name": "CTA Variations", "type": "multilineText", "options": {}},
-        {"name": "Previous Response", "type": "multilineText", "options": {}},
-        {"name": "Status", "type": "singleSelect", "options": {
-            "choices": [
-                {"name": "Drafted"},
-                {"name": "Ready to Send"},
-                {"name": "Sent"},
-                {"name": "Engaged"},
-                {"name": "Completed"},
-                {"name": "Stopped"}
-            ]
-        }},
-        {"name": "Engagement Metrics", "type": "multilineText", "options": {}},
-        {"name": "Last Sent Date", "type": "date", "options": {
-            "dateFormat": {
-                "format": "YYYY-MM-DD",
-                "name": "iso"
-            }
-        }},
-        {"name": "Next Send Date", "type": "date", "options": {
-            "dateFormat": {
-                "format": "YYYY-MM-DD",
-                "name": "iso"
-            }
         }}
-    ],
-    Tables.PAIN_POINTS: [
-        {"name": "Industry", "type": "singleLineText", "options": {"formatting": {}}},
-        {"name": "Pain Points", "type": "multilineText", "options": {"formatting": {}}},
-        {"name": "Keywords", "type": "multilineText", "options": {"formatting": {}}},
-        {"name": "Highlighted Quotes", "type": "multilineText", "options": {"formatting": {}}},
     ],
     Tables.OFFERS: [
-        {"name": "Offer ID", "type": "singleLineText", "options": {}},
-        {"name": "Offer Name", "type": "singleLineText", "options": {}},
-        {"name": "Category", "type": "singleSelect", "options": {
-            "choices": [
-                {"name": "Time & Attendance"},
-                {"name": "Payroll & Billing"},
-                {"name": "Candidate Management"},
-                {"name": "Client Management"},
-                {"name": "Compliance"},
-                {"name": "Reporting"}
-            ]
-        }},
-        {"name": "Description", "type": "multilineText", "options": {}},
-        {"name": "Key Benefits", "type": "multilineText", "options": {}},
-        {"name": "Industry Fit", "type": "multilineText", "options": {}},
-        {"name": "Customization Options", "type": "multilineText", "options": {}},
-        {"name": "Target Client Type", "type": "multipleSelects", "options": {
-            "choices": [
-                {"name": "Small Staffing"},
-                {"name": "Mid-size Staffing"},
-                {"name": "Enterprise Staffing"},
-                {"name": "Healthcare Staffing"},
-                {"name": "IT Staffing"},
-                {"name": "Industrial Staffing"}
-            ]
-        }}
+        {"name": "Lead ID", "type": "singleLineText"},
+        {"name": "Solution Name", "type": "singleLineText"},
+        {"name": "Value Proposition", "type": "multilineText"},
+        {"name": "Key Benefits", "type": "multilineText"},
+        {"name": "Technical Fit", "type": "multilineText"},
+        {"name": "ROI Analysis", "type": "multilineText"},
+        {"name": "Customization Notes", "type": "multilineText"}
+    ],
+    Tables.CAMPAIGNS: [
+        {"name": "Lead ID", "type": "singleLineText"},
+        {"name": "Email Subject", "type": "singleLineText"},
+        {"name": "Email Body", "type": "multilineText"},
+        {"name": "Sequence Number", "type": "number"},
+        {"name": "Wait Days", "type": "number"},
+        {"name": "Personalization Notes", "type": "multilineText"},
+        {"name": "Pain Points Addressed", "type": "multilineText"},
+        {"name": "Call To Action", "type": "singleLineText"}
     ]
 }
 

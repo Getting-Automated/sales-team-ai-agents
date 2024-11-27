@@ -213,21 +213,51 @@ class GettingAutomatedSalesAiAgent:
                 # Email Campaign Task
                 tasks.append(Task(
                     description=f"""
-                    {self.crew_config['agents']['email_campaign']['backstory']}
+                    Generate a 5-email campaign sequence and store in Airtable:
+                    Lead ID: {lead_id}
                     
-                    Goal: {self.crew_config['agents']['email_campaign']['goal']}
+                    Create 5 strategic emails in sequence using the airtable_tool:
+
+                    1. Initial Outreach (Sequence Number: 1, Wait Days: 0)
+                    - Focus on introduction and primary value proposition
+                    - Reference specific company research
                     
-                    Generate personalized email campaign for {lead.get('name')} at {lead.get('company')}:
-                    - Create compelling initial outreach
-                    - Design follow-up sequence
-                    - Incorporate pain points and solutions
+                    2. Value-Add Follow-up (Sequence Number: 2, Wait Days: 3)
+                    - Share relevant content or insight
+                    - Build credibility without hard selling
                     
-                    Offer: {{context.offer}}
-                    Individual Profile: {{context.individual_evaluation}}
+                    3. Pain Point Focus (Sequence Number: 3, Wait Days: 5)
+                    - Address specific pain points identified
+                    - Share relevant industry insights
+                    
+                    4. ROI Discussion (Sequence Number: 4, Wait Days: 7)
+                    - Present concrete business value
+                    - Include specific metrics or outcomes
+                    
+                    5. Final Value Proposition (Sequence Number: 5, Wait Days: 10)
+                    - Create urgency
+                    - Make strong final offer
+                    - Include all previous context
+                    
+                    For each email, create a record in the 'Email Campaigns' table with:
+                    - Lead ID: {lead_id}
+                    - Email Subject: Unique, compelling subject line
+                    - Email Body: Personalized content
+                    - Sequence Number: (1 through 5)
+                    - Wait Days: (0, 3, 5, 7, or 10)
+                    - Personalization Notes: Specific personalization points
+                    - Pain Points Addressed: Pain points tackled in this email
+                    - Call To Action: Primary CTA for this stage
+                    
+                    Ensure each email:
+                    1. Builds upon previous communications
+                    2. References any positive interactions
+                    3. Provides unique value at each touch
+                    4. Maintains consistent narrative
+                    5. Gets progressively more direct with CTAs
                     """,
-                    expected_output="Complete email campaign sequence",
-                    agent=self.agents['email_campaign_agent'],
-                    context=["offer_creation", "individual_evaluation"]
+                    expected_output="Complete email sequence (5 emails) created in Airtable",
+                    agent=self.agents['email_campaign_agent']
                 ))
 
             except Exception as e:
