@@ -228,19 +228,23 @@ class GettingAutomatedSalesAiAgent:
             # Update Proxycurl Data Task
             update_proxycurl_task = Task(
                 description=f"""
-                Update the Airtable record with the Proxycurl enrichment data.
+                Store the COMPLETE Proxycurl Result in Airtable exactly as received.
                 
                 Steps:
                 1. Get the record ID from the store_task context
-                2. Update the record with:
+                2. Update the Airtable record with:
                    action: update
                    table_name: Leads
                    data:
-                     Proxycurl Result: [Proxycurl data from previous task]
+                     Proxycurl Result: <insert the ENTIRE Proxycurl JSON response as a string>
                 
-                The Proxycurl data should be properly formatted as a JSON string.
+                IMPORTANT:
+                - Do NOT parse or modify the Proxycurl data
+                - Store the COMPLETE JSON response as a single string
+                - Do NOT extract individual fields
+                - The data should be stored exactly as received from the Proxycurl tool
                 """,
-                expected_output="Updated Airtable record with Proxycurl data",
+                expected_output="Updated Airtable record with complete Proxycurl JSON data",
                 agent=self.agents['data_manager'],
                 context=[store_task, proxycurl_task]
             )
@@ -294,6 +298,9 @@ class GettingAutomatedSalesAiAgent:
                 - "Low" or "Weak" = 30
                 
                 Airtable record ID is available in the task context.
+
+
+                Validate that the record actually get updated in Airtable before proceeding.
                 """,
                 expected_output="Updated Airtable record with individual evaluation",
                 agent=self.agents['data_manager'],
@@ -308,7 +315,19 @@ class GettingAutomatedSalesAiAgent:
                 
                 Goal: {self.crew_config['company_evaluator']['goal']}
                 
-                Use the enriched Proxycurl company data to evaluate:
+                
+                Evaluate company {lead.get('company')} against ICP criteria:
+                - Target Industries: {', '.join(self.icp_config.get('target_industries', []))}
+                - Industries: {', '.join(self.icp_config.get('industries', []))}
+                - Business Models: {', '.join(self.icp_config.get('business_models', []))}
+                - Company Size: {self.icp_config.get('company_size', {})}
+                - Technologies: {', '.join(self.icp_config.get('technologies', []))}
+                - Growth Stages: {', '.join(self.icp_config.get('growth_stages', []))}
+                - Employee Count Range: {self.icp_config.get('minimum_requirements', {}).get('employee_count_min')} - {self.icp_config.get('minimum_requirements', {}).get('employee_count_max')}
+                
+                Company Data: {json.dumps(lead, indent=2)}
+                
+                
                 1. Industry alignment
                 2. Company size match
                 3. Location/market presence
@@ -349,6 +368,8 @@ class GettingAutomatedSalesAiAgent:
                 Dates should be in ISO format (YYYY-MM-DD).
                 
                 Airtable record ID is available in the task context.
+
+                Ensure that you check with the Data Manager that this record gets updated within Airtable.
                 """,
                 expected_output="Updated Airtable record with company evaluation",
                 agent=self.agents['data_manager'],
