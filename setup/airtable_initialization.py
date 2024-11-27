@@ -6,11 +6,13 @@ from config.airtable_config import (
     WORKSPACE_ID, 
     Tables, 
     TABLE_SCHEMAS, 
-    SAMPLE_DATA
+    SAMPLE_DATA,
+    SELECT_OPTIONS
 )
 import argparse
 from pyairtable import Table, Api
 import sys
+import json
 
 # Load environment variables
 load_dotenv()
@@ -23,7 +25,8 @@ def delete_base(base_id):
     url = f"https://api.airtable.com/v0/meta/bases/{base_id}"
     headers = {
         "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Scope": "workspacesAndBases:manage"
     }
     
     try:
@@ -32,7 +35,13 @@ def delete_base(base_id):
             print(f"Base {base_id} deleted successfully")
             return True
         else:
-            print(f"Failed to delete base: {response.text}")
+            error_msg = response.json().get('error', {})
+            print(f"Failed to delete base: {error_msg}")
+            if error_msg.get('type') == 'INVALID_PERMISSIONS_OR_MODEL_NOT_FOUND':
+                print("\nThis error usually means one of the following:")
+                print("1. Your API token doesn't have the 'workspacesAndBases:manage' scope")
+                print("2. You need to be an Enterprise admin")
+                print("3. You need to use an enterprise-scoped token")
             return False
     except Exception as e:
         print(f"Error deleting base: {str(e)}")
@@ -42,7 +51,7 @@ def list_bases(workspace_id):
     """Lists all bases in a workspace"""
     print(f"Listing bases in workspace {workspace_id}...")
     
-    url = f"https://api.airtable.com/v0/meta/workspaces/{workspace_id}/bases"
+    url = "https://api.airtable.com/v0/meta/bases"
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json"
@@ -52,6 +61,18 @@ def list_bases(workspace_id):
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
             bases = response.json().get('bases', [])
+            # Debug: Print all bases before filtering
+            print("\nAll available bases:")
+            for base in bases:
+                print(f"- {base.get('name')} (ID: {base.get('id')}, Workspace: {base.get('workspaceId')})")
+            
+            # Include bases with None workspaceId
+            if workspace_id:
+                bases = [base for base in bases if base.get('workspaceId') == workspace_id or base.get('workspaceId') is None]
+                print(f"\nBases in workspace {workspace_id} (including unassigned):")
+                for base in bases:
+                    print(f"- {base.get('name')} (ID: {base.get('id')})")
+            
             return bases
         else:
             print(f"Failed to list bases: {response.text}")
@@ -62,10 +83,14 @@ def list_bases(workspace_id):
 
 def find_base_by_name(workspace_id, base_name):
     """Finds a base by name in the workspace"""
+    print(f"\nLooking for base named '{base_name}'...")
     bases = list_bases(workspace_id)
     for base in bases:
+        print(f"Checking base: {base.get('name')} (ID: {base.get('id')})")
         if base.get('name') == base_name:
+            print(f"Found matching base: {base.get('name')} (ID: {base.get('id')})")
             return base.get('id')
+    print(f"No base found with name '{base_name}'")
     return None
 
 def create_workspace(name="AI Sales Workspace"):
@@ -126,53 +151,6 @@ def create_base(workspace_id, base_name):
         "Content-Type": "application/json"
     }
     
-    # Define select field choices
-    select_options = {
-        "Lead Tier": [
-            {"name": "High"},
-            {"name": "Medium"},
-            {"name": "Low"}
-        ],
-        "Campaign Tier": [
-            {"name": "High"},
-            {"name": "Medium"},
-            {"name": "Low"}
-        ],
-        "Wait Time": [
-            {"name": "Same Day"},
-            {"name": "1 Day"},
-            {"name": "2 Days"},
-            {"name": "3 Days"},
-            {"name": "5 Days"},
-            {"name": "1 Week"},
-            {"name": "2 Weeks"}
-        ],
-        "Status": [
-            {"name": "Drafted"},
-            {"name": "Ready to Send"},
-            {"name": "Sent"},
-            {"name": "Engaged"},
-            {"name": "Completed"},
-            {"name": "Stopped"}
-        ],
-        "Category": [
-            {"name": "Time & Attendance"},
-            {"name": "Payroll & Billing"},
-            {"name": "Candidate Management"},
-            {"name": "Client Management"},
-            {"name": "Compliance"},
-            {"name": "Reporting"}
-        ],
-        "Target Client Type": [
-            {"name": "Small Staffing"},
-            {"name": "Mid-size Staffing"},
-            {"name": "Enterprise Staffing"},
-            {"name": "Healthcare Staffing"},
-            {"name": "IT Staffing"},
-            {"name": "Industrial Staffing"}
-        ]
-    }
-    
     # Simplify the table structure for initial creation
     airtable_tables = []
     for table_name, fields in TABLE_SCHEMAS.items():
@@ -186,10 +164,10 @@ def create_base(workspace_id, base_name):
             
             # Add options based on field type
             if field["type"] == "number":
-                field_def["options"] = {"precision": 0}
+                field_def["options"] = {"precision": 1}
             elif field["type"] in ["singleSelect", "multipleSelects"]:
-                if field["name"] in select_options:
-                    field_def["options"] = {"choices": select_options[field["name"]]}
+                if field["name"] in SELECT_OPTIONS:
+                    field_def["options"] = SELECT_OPTIONS[field["name"]]
                 else:
                     field_def["options"] = {"choices": []}
             elif field["type"] == "date":
@@ -243,13 +221,125 @@ def get_existing_base_id():
             return base['id']
     return None
 
+def update_base_schema(base_id):
+    """Updates an existing base's schema by creating new tables and renaming old ones"""
+    print(f"Updating schema for base {base_id}...")
+    
+    url = f"https://api.airtable.com/v0/meta/bases/{base_id}/tables"
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        # Get existing tables
+        response = requests.get(url, headers=headers)
+        existing_tables = response.json().get('tables', [])
+        existing_table_names = {table['name']: table['id'] for table in existing_tables}
+        
+        print("\nExisting tables:", list(existing_table_names.keys()))
+        
+        # Update each table
+        for table_name, fields in TABLE_SCHEMAS.items():
+            table_name_str = table_name.value
+            temp_table_name = f"{table_name_str}_new"
+            formatted_fields = []
+            
+            print(f"\nProcessing table: {table_name_str}")
+            
+            # Format fields as before
+            for field in fields:
+                field_def = {
+                    "name": field["name"],
+                    "type": field["type"]
+                }
+                
+                if field["type"] == "number":
+                    field_def["options"] = {"precision": 1}
+                elif field["type"] in ["singleSelect", "multipleSelects"]:
+                    if field["name"] in SELECT_OPTIONS:
+                        field_def["options"] = SELECT_OPTIONS[field["name"]]
+                    else:
+                        field_def["options"] = {"choices": []}
+                elif field["type"] == "date":
+                    field_def["options"] = {"dateFormat": {"name": "local"}}
+                
+                formatted_fields.append(field_def)
+                print(f"  Added field: {field_def['name']} ({field_def['type']})")
+            
+            if table_name_str in existing_table_names:
+                # Create new table with temporary name
+                create_payload = {
+                    "name": temp_table_name,
+                    "fields": formatted_fields
+                }
+                
+                print(f"\nCreating temporary table: {temp_table_name}")
+                create_response = requests.post(url, headers=headers, json=create_payload)
+                
+                if create_response.status_code == 200:
+                    print(f"✓ Created temporary table {temp_table_name}")
+                    
+                    # Rename old table to backup name
+                    old_table_id = existing_table_names[table_name_str]
+                    backup_name = f"{table_name_str}_backup"
+                    rename_payload = {"name": backup_name}
+                    
+                    print(f"Renaming old table to {backup_name}")
+                    rename_response = requests.patch(
+                        f"{url}/{old_table_id}",
+                        headers=headers,
+                        json=rename_payload
+                    )
+                    
+                    if rename_response.status_code == 200:
+                        print(f"✓ Renamed old table to {backup_name}")
+                        
+                        # Rename new table to final name
+                        new_table_id = create_response.json()['id']
+                        final_rename_payload = {"name": table_name_str}
+                        
+                        final_rename_response = requests.patch(
+                            f"{url}/{new_table_id}",
+                            headers=headers,
+                            json=final_rename_payload
+                        )
+                        
+                        if final_rename_response.status_code == 200:
+                            print(f"✓ Renamed new table to {table_name_str}")
+                        else:
+                            print(f"Failed to rename new table: {final_rename_response.text}")
+                    else:
+                        print(f"Failed to rename old table: {rename_response.text}")
+                else:
+                    print(f"Failed to create temporary table: {create_response.text}")
+            else:
+                # Create new table directly if it doesn't exist
+                create_payload = {
+                    "name": table_name_str,
+                    "fields": formatted_fields
+                }
+                
+                print(f"\nCreating new table: {table_name_str}")
+                create_response = requests.post(url, headers=headers, json=create_payload)
+                
+                if create_response.status_code == 200:
+                    print(f"✓ Created new table {table_name_str}")
+                else:
+                    print(f"Failed to create table: {create_response.text}")
+        
+        return True
+    except Exception as e:
+        print(f"Error updating base schema: {str(e)}")
+        return False
+
 def main():
-    """Main initialization function with delete/recreate capability"""
-    parser = argparse.ArgumentParser(description='Initialize or reinitialize Airtable base')
+    """Main initialization function"""
+    parser = argparse.ArgumentParser(description='Initialize or update Airtable base')
     parser.add_argument('--force', action='store_true', 
-                      help='Force delete and recreate if base exists')
+                      help='Force delete and recreate if base exists (requires Enterprise)')
     parser.add_argument('--delete-only', action='store_true',
-                      help='Only delete the existing base without recreating')
+                      help='Only delete the existing base (requires Enterprise)')
     parser.add_argument('--get-base-id', action='store_true',
                       help='Get the ID of the existing base')
     args = parser.parse_args()
@@ -283,22 +373,17 @@ def main():
                     print("Delete-only operation completed")
                     return None
             else:
-                print("Base already exists. Use --force to delete and recreate, or --delete-only to just delete")
-                return existing_base_id
-        
-        # Create new base
-        base_id = create_base(WORKSPACE_ID, BASE_NAME)
-        
-        # Initialize tables with sample data
-        for table_name in TABLE_SCHEMAS.keys():
-            initialize_table(table_name, base_id)
-        
-        print("\nSetup Complete!")
-        print(f"Workspace ID: {WORKSPACE_ID}")
-        print(f"Base ID: {base_id}")
-        print("\nSave these IDs for future reference.")
-        
-        return base_id
+                # Update existing base schema
+                if update_base_schema(existing_base_id):
+                    print("Base schema updated successfully")
+                    return existing_base_id
+                else:
+                    raise Exception("Failed to update base schema")
+        else:
+            # Create new base only if it doesn't exist
+            base_id = create_base(WORKSPACE_ID, BASE_NAME)
+            print(f"New base created with ID: {base_id}")
+            return base_id
         
     except Exception as e:
         print(f"\nSetup failed: {str(e)}")
@@ -306,7 +391,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 # Normal initialization (only creates if doesn't exist): python airtable_initialization.py
 # Force delete and recreate: python airtable_initialization.py --force
 # Delete only (if you just want to remove the base): python airtable_initialization.py --delete-only

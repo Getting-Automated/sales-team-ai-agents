@@ -9,47 +9,37 @@ class Tables(str, Enum):
     LEADS = "Leads"
     EMAIL_CAMPAIGNS = "Email Campaigns"
 
-# Select field options
+# Define select field options with proper schema
 SELECT_OPTIONS = {
-    "Individual Evaluation Status": [
-        {"name": "Not Started"},
-        {"name": "In Progress"},
-        {"name": "Completed"},
-        {"name": "Needs Review"}
-    ],
-    "Company Evaluation Status": [
-        {"name": "Not Started"},
-        {"name": "In Progress"},
-        {"name": "Completed"},
-        {"name": "Needs Review"}
-    ],
-    "Lead Tier": [
-        {"name": "High"},
-        {"name": "Medium"},
-        {"name": "Low"}
-    ],
-    "Wait Time": [
-        {"name": "Same Day"},
-        {"name": "1 Day"},
-        {"name": "2 Days"},
-        {"name": "3 Days"},
-        {"name": "5 Days"},
-        {"name": "1 Week"},
-        {"name": "2 Weeks"}
-    ],
-    "Status": [
-        {"name": "Drafted"},
-        {"name": "Ready to Send"},
-        {"name": "Sent"},
-        {"name": "Engaged"},
-        {"name": "Completed"},
-        {"name": "Stopped"}
-    ]
+    "Individual Evaluation Status": {
+        "choices": [
+            {"name": "Not Started", "color": "redBright"},
+            {"name": "In Progress", "color": "yellowBright"},
+            {"name": "Completed", "color": "greenBright"},
+            {"name": "Needs Review", "color": "orangeBright"}
+        ]
+    },
+    "Company Evaluation Status": {
+        "choices": [
+            {"name": "Not Started", "color": "redBright"},
+            {"name": "In Progress", "color": "yellowBright"},
+            {"name": "Completed", "color": "greenBright"},
+            {"name": "Needs Review", "color": "orangeBright"}
+        ]
+    },
+    "Lead Tier": {
+        "choices": [
+            {"name": "High", "color": "greenBright"},
+            {"name": "Medium", "color": "yellowBright"},
+            {"name": "Low", "color": "redBright"}
+        ]
+    }
 }
 
 # Table structure
 TABLE_SCHEMAS = {
-    Tables.LEADS.value: [
+    Tables.LEADS: [
+        # Basic Lead Info
         {"name": "Lead ID", "type": "singleLineText"},
         {"name": "Name", "type": "singleLineText"},
         {"name": "Email", "type": "email"},
@@ -57,33 +47,44 @@ TABLE_SCHEMAS = {
         {"name": "Role", "type": "singleLineText"},
         {"name": "LinkedIn URL", "type": "url"},
         {"name": "Company LinkedIn", "type": "url"},
-        {"name": "Individual Score", "type": "number"},
-        {"name": "Individual Evaluation Status", "type": "singleSelect", "options": {"choices": SELECT_OPTIONS["Individual Evaluation Status"]}},
-        {"name": "Role Match Score", "type": "number"},
-        {"name": "Authority Match Score", "type": "number"},
-        {"name": "Department Match Score", "type": "number"},
-        {"name": "Skills Match Score", "type": "number"},
+        
+        # Status Fields with proper select options
+        {"name": "Individual Evaluation Status", "type": "singleSelect", 
+         "options": SELECT_OPTIONS["Individual Evaluation Status"]},
+        {"name": "Company Evaluation Status", "type": "singleSelect",
+         "options": SELECT_OPTIONS["Company Evaluation Status"]},
+        
+        # Score Fields
+        {"name": "Individual Score", "type": "number", "options": {"precision": 1}},
+        {"name": "Company Score", "type": "number", "options": {"precision": 1}},
+        {"name": "Role Match Score", "type": "number", "options": {"precision": 1}},
+        {"name": "Authority Match Score", "type": "number", "options": {"precision": 1}},
+        {"name": "Department Match Score", "type": "number", "options": {"precision": 1}},
+        {"name": "Skills Match Score", "type": "number", "options": {"precision": 1}},
+        {"name": "Industry Match Score", "type": "number", "options": {"precision": 1}},
+        {"name": "Size Match Score", "type": "number", "options": {"precision": 1}},
+        {"name": "Location Match Score", "type": "number", "options": {"precision": 1}},
+        {"name": "Growth Match Score", "type": "number", "options": {"precision": 1}},
+        
+        # Analysis Fields
         {"name": "Individual Analysis", "type": "multilineText"},
-        {"name": "Enriched Individual Data", "type": "multilineText"},
-        {"name": "Company Score", "type": "number"},
-        {"name": "Company Evaluation Status", "type": "singleSelect", "options": {"choices": SELECT_OPTIONS["Company Evaluation Status"]}},
-        {"name": "Industry Match Score", "type": "number"},
-        {"name": "Size Match Score", "type": "number"},
-        {"name": "Location Match Score", "type": "number"},
-        {"name": "Growth Match Score", "type": "number"},
         {"name": "Company Analysis", "type": "multilineText"},
+        {"name": "Enriched Individual Data", "type": "multilineText"},
         {"name": "Enriched Company Data", "type": "multilineText"},
-        {"name": "Lead Tier", "type": "singleSelect", "options": {"choices": SELECT_OPTIONS["Lead Tier"]}},
+        {"name": "Raw Data", "type": "multilineText"},
+        
+        # Tracking Fields
+        {"name": "Lead Tier", "type": "singleSelect", 
+         "options": SELECT_OPTIONS["Lead Tier"]},
         {"name": "Last Evaluated", "type": "date"}
     ],
-    Tables.EMAIL_CAMPAIGNS.value: [
-        {"name": "Campaign ID", "type": "singleLineText"},
+    
+    Tables.EMAIL_CAMPAIGNS: [
         {"name": "Lead ID", "type": "singleLineText"},
         {"name": "Email Subject", "type": "singleLineText"},
         {"name": "Email Body", "type": "multilineText"},
         {"name": "Sequence Number", "type": "number"},
-        {"name": "Wait Time", "type": "singleSelect", "options": {"choices": SELECT_OPTIONS["Wait Time"]}},
-        {"name": "Status", "type": "singleSelect", "options": {"choices": SELECT_OPTIONS["Status"]}},
+        {"name": "Wait Days", "type": "number"},
         {"name": "Personalization Notes", "type": "multilineText"},
         {"name": "Pain Points Addressed", "type": "multilineText"},
         {"name": "Call To Action", "type": "singleLineText"}

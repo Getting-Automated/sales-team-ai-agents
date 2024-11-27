@@ -57,7 +57,7 @@ class AirtableTool(BaseTool):
             if action == "search":
                 if not search_field or not search_value:
                     return {"error": "Search field and value are required for search operation"}
-                # Search for existing record - using exact field name from schema
+                # Search for existing record
                 formula = f"LOWER({search_field}) = LOWER('{search_value}')"
                 records = table.all(formula=formula)
                 if records:
@@ -69,7 +69,8 @@ class AirtableTool(BaseTool):
                     return {"error": "Data is required for create operation"}
                 # Clean and validate data before creation
                 cleaned_data = self._clean_data_for_schema(data, table_name)
-                created_record = table.create(cleaned_data)
+                # Enable typecast for automatic data conversion
+                created_record = table.create(cleaned_data, typecast=True)
                 return {"record": created_record, "record_id": created_record["id"]}
                 
             elif action == "update":
@@ -79,7 +80,8 @@ class AirtableTool(BaseTool):
                     return {"error": "Data is required for update operation"}
                 # Clean and validate data before update
                 cleaned_data = self._clean_data_for_schema(data, table_name)
-                updated_record = table.update(record_id, cleaned_data)
+                # Enable typecast for automatic data conversion
+                updated_record = table.update(record_id, cleaned_data, typecast=True)
                 return {"record": updated_record, "record_id": record_id}
                 
             elif action == "get":
