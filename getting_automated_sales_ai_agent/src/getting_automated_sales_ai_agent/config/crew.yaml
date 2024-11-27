@@ -1,6 +1,14 @@
 process:
-  type: "sequential"
+  type: "hierarchical"
   verbose: true
+
+manager:
+  role: "Sales Process Manager"
+  goal: "Orchestrate the sales evaluation and outreach process efficiently"
+  backstory: "You are an experienced sales operations manager who coordinates the evaluation, analysis, and outreach efforts. You ensure all steps are executed in the optimal order and that insights are properly shared between team members."
+  tools:
+    - openai_tool
+    - airtable_tool
 
 agents:
   company_evaluator:

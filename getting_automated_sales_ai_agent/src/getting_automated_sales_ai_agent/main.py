@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from getting_automated_sales_ai_agent.crew import GettingAutomatedSalesAiAgent
+import csv
 
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 
@@ -132,6 +133,64 @@ def process_csv_files(input_dir):
             
         except Exception as e:
             print(f"Error processing CSV file {csv_file}: {str(e)}")
+
+def load_leads_from_csv(file_path):
+    """Load leads from a CSV file"""
+    leads = []
+    with open(file_path, 'r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            leads.append({
+                'name': row.get('Name', ''),
+                'email': row.get('Email', ''),
+                'company': row.get('Company', ''),
+                'role': row.get('Title', ''),
+                'linkedin_url': row.get('LinkedIn URL', ''),
+                'company_website': row.get('Company Website', '')
+            })
+    return leads
+
+def main():
+    # Find CSV files in the inputs directory
+    input_dir = Path(__file__).parent.parent.parent / 'inputs'
+    print(f"\nLooking for CSV files in: {input_dir}")
+    
+    csv_files = list(input_dir.glob('*.csv'))
+    if not csv_files:
+        print("No CSV files found in the inputs directory")
+        return
+    
+    # Process each CSV file
+    for csv_file in csv_files:
+        print(f"\nProcessing file: {csv_file.name}")
+        
+        # Load leads from CSV
+        leads = load_leads_from_csv(csv_file)
+        
+        # Initialize the crew
+        sales_crew = GettingAutomatedSalesAiAgent()
+        
+        # Process each lead
+        for lead in leads:
+            try:
+                print(f"\nProcessing lead:")
+                print(f"Name: {lead['name']}")
+                print(f"Email: {lead['email']}")
+                print(f"Company: {lead['company']}")
+                
+                # Set the lead data for processing
+                sales_crew.inputs['leads'] = [lead]
+                
+                # Run the crew with hierarchical process
+                result = sales_crew.run()
+                
+                # Print results and usage statistics
+                print("\nProcessing Results:")
+                print(result)
+                
+            except Exception as e:
+                print(f"Error processing lead: {str(e)}")
+                continue
 
 def run():
     """Main function to run the crew"""

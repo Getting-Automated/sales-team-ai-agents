@@ -12,7 +12,7 @@ individual_evaluator:
     - openai_tool
     - airtable_tool
   llm:
-    model: gpt-4o-mini
+    model: gpt-4o
     temperature: 0.7
     max_tokens: 1500
   verbose: true
@@ -29,7 +29,7 @@ company_evaluator:
     - perplexity_tool
     - airtable_tool
   llm:
-    model: gpt-4o-mini
+    model: gpt-4o
     temperature: 0.7
     max_tokens: 1500
   verbose: true
@@ -46,7 +46,7 @@ pain_point_agent:
     - openai_tool
     - airtable_tool
   llm:
-    model: gpt-4o-mini
+    model: gpt-4o
     temperature: 0.7
     max_tokens: 1500
   verbose: true
@@ -62,7 +62,7 @@ offer_creator_agent:
     - openai_tool
     - airtable_tool
   llm:
-    model: gpt-4o-mini
+    model: gpt-4o
     temperature: 0.7
     max_tokens: 1500
   verbose: true
@@ -78,7 +78,7 @@ email_campaign_agent:
     - openai_tool
     - airtable_tool
   llm:
-    model: gpt-4o-mini
+    model: gpt-4o
     temperature: 0.7
     max_tokens: 1500
   verbose: true

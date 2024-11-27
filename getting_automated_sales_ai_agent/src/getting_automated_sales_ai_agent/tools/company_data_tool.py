@@ -135,7 +135,7 @@ class CompanyDataTool(BaseTool):
         """Use OpenAI directly to extract structured company data."""
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",  # or your preferred model
+                model="gpt-4o",  # or your preferred model
                 messages=[
                     {
                         "role": "system",
