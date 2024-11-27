@@ -72,6 +72,7 @@ TABLE_SCHEMAS = {
         {"name": "Enriched Individual Data", "type": "multilineText"},
         {"name": "Enriched Company Data", "type": "multilineText"},
         {"name": "Raw Data", "type": "multilineText"},
+        {"name": "Proxycurl Result", "type": "multilineText"},
         
         # Tracking Fields
         {"name": "Lead Tier", "type": "singleSelect", 

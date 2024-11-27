@@ -1,7 +1,6 @@
 from crewai import Agent
 from ..tools.company_data_tool import CompanyDataTool
 from ..tools.perplexity_tool import PerplexityTool
-from ..tools.airtable_tool import AirtableTool
 from datetime import datetime
 
 class CompanyEvaluation:
@@ -85,81 +84,73 @@ class CompanyEvaluation:
         
         return enriched_data
 
-def evaluate_company(task):
-    """Evaluate a company based on ICP criteria"""
-    context = task.context[0] if isinstance(task.context, list) else task.context
-    lead = context.get('lead', {})
-    config = context.get('config', {}).get('customer_icp', {})
-    tools = task.agent.tools
-    
-    try:
-        # Search for existing lead
-        search_result = tools['airtable_tool']._run(
-            action="search",
-            table_name="Leads",
-            search_field="Email",
-            search_value=lead.get('email')
-        )
-        
-        airtable_record_id = None
-        if search_result.get('record'):
-            airtable_record_id = search_result['record_id']
-        
-        # Prepare initial company data
-        company_data = {
-            'name': lead.get('company', ''),
-            'industry': lead.get('industry', ''),
-            'company_size': lead.get('employees', 0),
-            'revenue': lead.get('revenue', 0),
-            'location': lead.get('company_location', ''),
-            'technologies': lead.get('technologies', []),
-            'company_linkedin_url': lead.get('company_linkedin_url', '')
-        }
-        
-        # Enrich data
-        enriched_data = CompanyEvaluation.enrich_company_data(company_data, tools)
-        
-        # Calculate score
-        score = CompanyEvaluation.calculate_score(enriched_data, config)
-        
-        result = {
-            'company_name': company_data['name'],
-            'score': score,
-            'enriched_data': enriched_data
-        }
-        
-        # Update Airtable record with company evaluation results
-        if airtable_record_id:
-            tools['airtable_tool']._run(
-                action="update",
-                table_name="Leads",
-                record_id=airtable_record_id,
-                data={
-                    'Company Score': score['total'],
-                    'Industry Match Score': score['breakdown']['industry_match']['score'],
-                    'Size Match Score': score['breakdown']['size_match']['score'],
-                    'Location Match Score': score['breakdown']['location_match']['score'],
-                    'Growth Match Score': score['breakdown']['growth_match']['score'],
-                    'Company Analysis': str(score['breakdown']),
-                    'Enriched Company Data': str(enriched_data),
-                    'Company Evaluation Status': "Completed",
-                    'Last Evaluated': datetime.now().strftime("%Y-%m-%d")
-                }
-            )
-        
-        return result
-        
-    except Exception as e:
-        print(f"Error in company evaluation: {str(e)}")
-        return {
-            'error': str(e),
-            'company_name': lead.get('company', 'Unknown'),
-            'partial_data': company_data
-        }
-
 def get_company_evaluator(config, tools, llm):
     """Create a company evaluator agent"""
-    return Agent(
+    class CompanyEvaluator(Agent):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.company_data_tool = tools['company_data_tool']
+            self.perplexity_tool = tools['perplexity_tool']
+
+        def evaluate(self, task):
+            """
+            Evaluate a company against ICP criteria.
+            Returns evaluation results without handling Airtable operations.
+            """
+            try:
+                # Extract company data from task context
+                lead_data = task.context[0].output.get('lead_data', {})
+                company_data = {
+                    'name': lead_data.get('company'),
+                    'website': lead_data.get('company_website'),
+                    'linkedin_url': lead_data.get('company_linkedin_url'),
+                    'industry': lead_data.get('industry'),
+                    'technologies': lead_data.get('technologies'),
+                    'employees': lead_data.get('employees'),
+                    'revenue': lead_data.get('revenue'),
+                    'location': lead_data.get('company_location'),
+                    'keywords': lead_data.get('keywords')
+                }
+                
+                # Analyze company using Perplexity for market research
+                market_analysis = self.perplexity_tool.research(
+                    query=f"Analyze {company_data['name']} in terms of: "
+                          f"1. Market position and growth trajectory "
+                          f"2. Technology adoption and innovation "
+                          f"3. Industry challenges and opportunities "
+                          f"4. Recent company developments"
+                )
+                
+                # Analyze company fit using Company Data Tool
+                company_analysis = self.company_data_tool.analyze(
+                    company_data=company_data,
+                    analysis_type="icp_fit"
+                )
+                
+                # Combine analyses into final evaluation
+                evaluation = {
+                    'company_name': company_data['name'],
+                    'market_analysis': market_analysis,
+                    'company_analysis': company_analysis,
+                    'icp_alignment_score': company_analysis.get('alignment_score', 0),
+                    'recommendation': company_analysis.get('recommendation', ''),
+                    'key_factors': company_analysis.get('key_factors', []),
+                    'evaluation_timestamp': datetime.now().isoformat()
+                }
+                
+                return {
+                    'status': 'success',
+                    'evaluation': evaluation,
+                    'message': 'Company evaluation completed successfully'
+                }
+                
+            except Exception as e:
+                return {
+                    'status': 'error',
+                    'message': f'Error evaluating company: {str(e)}'
+                }
+
+    return CompanyEvaluator(
         role="Company Fit Analyst",
         goal="Analyze company-level ICP fit based on size, industry, and market presence",
         backstory="""You are an expert business analyst specializing in company evaluation. 
@@ -167,8 +158,7 @@ def get_company_evaluator(config, tools, llm):
         infrastructure, and alignment with target profiles.""",
         tools=[
             tools['company_data_tool'],
-            tools['perplexity_tool'],
-            tools['airtable_tool']
+            tools['perplexity_tool']
         ],
         llm=llm,
         verbose=config['process']['verbose']

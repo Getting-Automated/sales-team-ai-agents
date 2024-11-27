@@ -78,46 +78,66 @@ class GettingAutomatedSalesAiAgent:
 
     def _initialize_agents(self):
         """Initialize agents from config"""
-        agents = {}
-        
-        # Initialize manager agent
-        manager_config = self.crew_config['manager']
-        self.manager_agent = Agent(
-            role=manager_config['role'],
-            goal=manager_config['goal'],
-            backstory=manager_config['backstory'],
-            llm=self.llm,
-            verbose=self.crew_config['process']['verbose'],
-            allow_delegation=True,
-            memory=True
-        )
-        
-        # Get list of agent configs (excluding process, llm, and manager)
-        agent_configs = {k: v for k, v in self.crew_config.items() 
-                        if k not in ['process', 'llm', 'manager']}
-        
-        # Initialize worker agents
-        for agent_id, agent_config in agent_configs.items():
-            agent_tools = [
-                self.tools[tool] 
-                for tool in agent_config.get('tools', [])
-                if tool in self.tools
-            ]
+        try:
+            # Initialize agents dictionary
+            agents = {}
             
-            print(f"\nDEBUG: Initializing {agent_id} with tools: {[tool.__class__.__name__ for tool in agent_tools]}")
-            
-            agents[agent_id] = Agent(
-                role=agent_config['role'],
-                goal=agent_config['goal'],
-                backstory=agent_config['backstory'],
-                tools=agent_tools,
+            # Initialize manager agent without tools
+            manager_config = self.crew_config['manager']
+            self.manager = Agent(
+                role=manager_config['role'],
+                goal=manager_config['goal'],
+                backstory=manager_config['backstory'],
                 llm=self.llm,
                 verbose=self.crew_config['process']['verbose'],
                 allow_delegation=True,
-                memory=agent_config.get('memory', True)
+                memory=True
             )
-        
-        return agents
+                
+            # Create data manager agent
+            agents['data_manager'] = Agent(
+                role=self.crew_config['data_manager']['role'],
+                goal=self.crew_config['data_manager']['goal'],
+                backstory=self.crew_config['data_manager']['backstory'],
+                tools=[self.tools['airtable_tool']],
+                llm=self.llm
+            )
+            
+            # Create data enricher agent
+            agents['data_enricher'] = Agent(
+                role=self.crew_config['data_enricher']['role'],
+                goal=self.crew_config['data_enricher']['goal'],
+                backstory=self.crew_config['data_enricher']['backstory'],
+                tools=[self.tools['proxycurl_tool']],
+                llm=self.llm
+            )
+            
+            # Create individual evaluator agent
+            agents['individual_evaluator'] = Agent(
+                role=self.crew_config['individual_evaluator']['role'],
+                goal=self.crew_config['individual_evaluator']['goal'],
+                backstory=self.crew_config['individual_evaluator']['backstory'],
+                tools=[self.tools['openai_tool']],
+                llm=self.llm
+            )
+            
+            # Create company evaluator agent
+            agents['company_evaluator'] = Agent(
+                role=self.crew_config['company_evaluator']['role'],
+                goal=self.crew_config['company_evaluator']['goal'],
+                backstory=self.crew_config['company_evaluator']['backstory'],
+                tools=[self.tools['company_data_tool'], self.tools['perplexity_tool']],
+                llm=self.llm
+            )
+            
+            return agents
+            
+        except KeyError as e:
+            print(f"Error initializing agents: Missing configuration for {str(e)}")
+            raise
+        except Exception as e:
+            print(f"Error initializing agents: {str(e)}")
+            raise
 
     def create_tasks(self):
         """Create tasks for processing leads"""
@@ -129,108 +149,226 @@ class GettingAutomatedSalesAiAgent:
             # Use email as unique identifier
             lead_id = f"LEAD_{lead.get('email', '').replace('@', '_at_').replace('.', '_dot_')}"
             
-            # Create context as a list with a properly formatted dictionary
-            task_context = [{
+            # Create initial task context
+            task_context = {
                 'description': f"Context for lead {lead.get('name')}",
                 'expected_output': "Lead and configuration data",
                 'lead': lead,
                 'config': self.icp_config,
                 'lead_id': lead_id,
-                'airtable_record_id': None  # We'll update this after the initial search/create
-            }]
+                'airtable_record_id': None  # Will be updated after storage task
+            }
             
-            # Initial Lead Storage Task
-            tasks.append(Task(
+            # Store Lead Task - Initial storage without Proxycurl data
+            store_task = Task(
                 description=f"""
-                Store or update lead in Airtable Leads table.
-                First, search for existing lead by email: {lead.get('email')}
+                Store or update the following lead data in Airtable:
+
+                Lead Data:
+                - Email: {lead.get('email')}
+                - Name: {lead.get('name')}
+                - Company: {lead.get('company')}
+                - Role: {lead.get('role')}
+                - LinkedIn URL: {lead.get('linkedin_url', '')}
+                - Company LinkedIn: {lead.get('company_linkedin_url', '')}
+                - Raw Data: {json.dumps(lead)}
+
+                Steps:
+                1. First, search for this exact email in Airtable:
+                   action: search
+                   table_name: Leads
+                   search_field: Email
+                   search_value: {lead.get('email')}
                 
-                Use the airtable_tool to:
-                1. Search for existing lead:
-                   - action: "search"
-                   - table_name: "Leads"
-                   - search_field: "Email"
-                   - search_value: "{lead.get('email')}"
+                2. If not found, create a new record with these exact values:
+                   action: create
+                   table_name: Leads
+                   data:
+                     Email: {lead.get('email')}
+                     Name: {lead.get('name')}
+                     Company: {lead.get('company')}
+                     Role: {lead.get('role')}
+                     LinkedIn URL: {lead.get('linkedin_url', '')}
+                     Company LinkedIn: {lead.get('company_linkedin_url', '')}
+                     Individual Evaluation Status: Not Started
+                     Company Evaluation Status: Not Started
+                     Raw Data: {json.dumps(lead)}
                 
-                2. If not found, create new record:
-                   - action: "create"
-                   - table_name: "Leads"
-                   - data:
-                     - Lead ID: {lead_id}
-                     - Name: {lead.get('name')}
-                     - Email: {lead.get('email')}
-                     - Company: {lead.get('company')}
-                     - Role: {lead.get('role')}
-                     - Individual Evaluation Status: "Not Started"
-                     - Company Evaluation Status: "Not Started"
-                     - Raw Data: {json.dumps(lead)}
-                
-                3. If found, update the task context with the found record ID.
-                
-                Return the Airtable record ID and current evaluation statuses.
-                Update the task context with the Airtable record ID.
+                3. Return the Airtable record ID and current evaluation statuses.
                 """,
-                expected_output="Airtable record details including record ID",
-                agent=self.agents['individual_evaluator'],
-                context=task_context
-            ))
-            
+                expected_output="Airtable record ID and evaluation statuses",
+                agent=self.agents['data_manager'],
+                context=[task_context]
+            )
+            tasks.append(store_task)
+
+            # Proxycurl Enrichment Task
+            proxycurl_task = Task(
+                description=f"""
+                Enrich the lead data using the proxycurl_tool.
+                
+                LinkedIn URL to analyze: {lead.get('linkedin_url', '')}
+                
+                Steps:
+                1. Use the proxycurl_tool to fetch data for the LinkedIn URL above
+                2. If the URL is empty or invalid, return an empty result
+                3. Return the enriched data in a structured JSON format
+                
+                Lead context:
+                - Name: {lead.get('name')}
+                - Company: {lead.get('company')}
+                - Role: {lead.get('role')}
+                """,
+                expected_output="Enriched lead data from Proxycurl",
+                agent=self.agents['data_enricher'],
+                context=[store_task]
+            )
+            tasks.append(proxycurl_task)
+
+            # Update Proxycurl Data Task
+            update_proxycurl_task = Task(
+                description=f"""
+                Update the Airtable record with the Proxycurl enrichment data.
+                
+                Steps:
+                1. Get the record ID from the store_task context
+                2. Update the record with:
+                   action: update
+                   table_name: Leads
+                   data:
+                     Proxycurl Result: [Proxycurl data from previous task]
+                
+                The Proxycurl data should be properly formatted as a JSON string.
+                """,
+                expected_output="Updated Airtable record with Proxycurl data",
+                agent=self.agents['data_manager'],
+                context=[store_task, proxycurl_task]
+            )
+            tasks.append(update_proxycurl_task)
+
             # Individual Evaluation Task
-            tasks.append(Task(
+            indiv_eval_task = Task(
                 description=f"""
                 {self.crew_config['individual_evaluator']['backstory']}
                 
                 Goal: {self.crew_config['individual_evaluator']['goal']}
                 
-                Evaluate individual lead {lead.get('name')} against these ICP criteria:
-                - Target Departments: {', '.join(self.icp_config.get('target_departments', []))}
-                - Job Titles: {', '.join(self.icp_config.get('job_titles', []))}
-                - Decision Making Authority: {', '.join(self.icp_config.get('decision_making_authority', []))}
+                Use the enriched Proxycurl data from the previous task to evaluate:
+                1. Role and seniority alignment
+                2. Decision-making authority
+                3. Department and function match
+                4. Skills and experience match
                 
-                Lead Data: {json.dumps(lead, indent=2)}
+                Provide:
+                1. Overall ICP alignment score (0-100)
+                2. Detailed analysis of fit against each criterion
+                3. Recommendation for proceeding with this lead
                 
-                After evaluation, update the Airtable record using:
-                - action: "update"
-                - table_name: "Leads"
-                - record_id: [Use the Airtable record ID from the task context]
-                - data: [Include evaluation results]
+                Base your evaluation on both the initial lead data and the enriched Proxycurl data.
                 """,
-                expected_output="Detailed individual evaluation report with ICP alignment score",
+                expected_output="Individual evaluation report with ICP alignment score",
                 agent=self.agents['individual_evaluator'],
-                context=task_context
-            ))
+                context=[store_task, update_proxycurl_task]
+            )
+            tasks.append(indiv_eval_task)
+
+            # Update Individual Evaluation Task
+            update_indiv_task = Task(
+                description=f"""
+                Update the lead record in Airtable with the individual evaluation results.
+                
+                Use the evaluation results from the previous task to update these fields:
+                1. Individual Score: Convert score to a number (e.g., "90/100" becomes 90)
+                2. Individual Analysis
+                3. Individual Evaluation Status: Set to "Completed"
+                4. Role Match Score: Convert score to a number (e.g., "High" = 90)
+                5. Authority Match Score: Convert score to a number (e.g., "High" = 90)
+                6. Department Match Score: Convert score to a number (e.g., "High" = 90)
+                7. Skills Match Score: Convert score to a number (e.g., "High" = 90)
+                8. Lead Tier: Must be exactly one of ["High", "Medium", "Low"]
+                9. Last Evaluated: Use current date in ISO format (YYYY-MM-DD)
+                
+                Score Conversion Guide:
+                - "High" or "Strong" = 90
+                - "Medium" or "Moderate" = 70
+                - "Low" or "Weak" = 30
+                
+                Airtable record ID is available in the task context.
+                """,
+                expected_output="Updated Airtable record with individual evaluation",
+                agent=self.agents['data_manager'],
+                context=[store_task, indiv_eval_task]
+            )
+            tasks.append(update_indiv_task)
             
             # Company Evaluation Task
-            tasks.append(Task(
+            company_eval_task = Task(
                 description=f"""
                 {self.crew_config['company_evaluator']['backstory']}
                 
                 Goal: {self.crew_config['company_evaluator']['goal']}
                 
-                Evaluate company {lead.get('company')} against these ICP criteria:
-                - Industries: {', '.join(self.icp_config.get('industries', []))}
-                - Business Models: {', '.join(self.icp_config.get('business_models', []))}
-                - Technologies: {', '.join(self.icp_config.get('technologies', []))}
-                - Growth Stages: {', '.join(self.icp_config.get('growth_stages', []))}
-                - Employee Count Range: {self.icp_config.get('minimum_requirements', {}).get('employee_count_min')} - {self.icp_config.get('minimum_requirements', {}).get('employee_count_max')}
+                Use the enriched Proxycurl company data to evaluate:
+                1. Industry alignment
+                2. Company size match
+                3. Location/market presence
+                4. Growth indicators
+                5. Technology stack
+                6. Business model alignment
                 
-                Company Data: {json.dumps(lead, indent=2)}
+                Provide:
+                1. Overall company ICP alignment score (0-100)
+                2. Detailed analysis of company fit
+                3. Specific insights about growth potential
+                4. Recommendation for engagement strategy
+                
+                Base your evaluation on both the initial company data and the enriched Proxycurl data.
                 """,
-                expected_output="Company evaluation results",
+                expected_output="Company evaluation report with ICP alignment score",
                 agent=self.agents['company_evaluator'],
-                context=task_context
-            ))
+                context=[store_task, update_proxycurl_task, indiv_eval_task]
+            )
+            tasks.append(company_eval_task)
 
+            # Update Company Evaluation Task
+            update_company_task = Task(
+                description=f"""
+                Update the lead record in Airtable with the company evaluation results.
+                
+                Use the evaluation results from the previous task to update these fields:
+                1. Company Score: Convert score to a number (e.g., "85/100" becomes 85)
+                2. Company Analysis
+                3. Company Evaluation Status: Set to "Completed"
+                4. Industry Match Score: Convert score to a number (e.g., "90/100" becomes 90)
+                5. Size Match Score: Convert score to a number (e.g., "85/100" becomes 85)
+                6. Location Match Score: Convert score to a number (e.g., "80/100" becomes 80)
+                7. Growth Match Score: Convert score to a number (e.g., "88/100" becomes 88)
+                8. Last Evaluated: Use current date in ISO format (YYYY-MM-DD)
+                
+                All scores should be numbers between 0 and 100, not strings.
+                Dates should be in ISO format (YYYY-MM-DD).
+                
+                Airtable record ID is available in the task context.
+                """,
+                expected_output="Updated Airtable record with company evaluation",
+                agent=self.agents['data_manager'],
+                context=[store_task, company_eval_task]
+            )
+            tasks.append(update_company_task)
+        
         return tasks
 
     @property
     def crew(self):
         """Create and return the crew with hierarchical process"""
+        # Get list of worker agents (excluding manager)
+        worker_agents = list(self.agents.values())
+        
         return Crew(
-            agents=list(self.agents.values()),
+            agents=worker_agents,
             tasks=self.create_tasks(),
             process=Process.hierarchical,
-            manager_agent=self.manager_agent,
+            manager_agent=self.manager,
             verbose=self.crew_config['process']['verbose']
         )
 

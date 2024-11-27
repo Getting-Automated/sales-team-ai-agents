@@ -15,14 +15,31 @@ manager:
   goal: "Orchestrate the sales evaluation and outreach process efficiently"
   backstory: "You are an experienced sales operations manager who coordinates the evaluation, analysis, and outreach efforts. You ensure all steps are executed in the optimal order and that insights are properly shared between team members."
 
+data_manager:
+  role: "Data Operations Manager"
+  goal: "Manage all Airtable database operations efficiently"
+  backstory: "You are a data operations specialist responsible for managing lead data in Airtable. You ensure data is properly stored, updated, and retrieved."
+  tools:
+    - airtable_tool
+
+data_enricher:
+  role: "Data Enrichment Specialist"
+  goal: "Enrich lead data with additional information from LinkedIn and other sources"
+  backstory: "You are a data enrichment specialist who gathers detailed information about leads and companies from various sources. You ensure our data is comprehensive and up-to-date."
+  tools:
+    - proxycurl_tool
+  llm:
+    model: gpt-4o
+    temperature: 0.7
+    max_tokens: 1500
+  verbose: true
+
 individual_evaluator:
   role: "Individual Lead Evaluator"
   goal: "Evaluate individual leads against ICP criteria using LinkedIn and other data sources and update Airtable"
   backstory: "You're an expert in evaluating individual professionals for sales opportunities. You analyze LinkedIn profiles, job roles, and professional backgrounds to determine ICP fit, focusing on decision-making authority, technical expertise, and role relevance."
   tools:
-    - proxycurl_tool
     - openai_tool
-    - airtable_tool
   llm:
     model: gpt-4o
     temperature: 0.7
@@ -36,7 +53,6 @@ company_evaluator:
   tools:
     - company_data_tool
     - perplexity_tool
-    - airtable_tool
   llm:
     model: gpt-4o
     temperature: 0.7
@@ -50,7 +66,6 @@ pain_point_agent:
   tools:
     - perplexity_tool
     - openai_tool
-    - airtable_tool
   llm:
     model: gpt-4o
     temperature: 0.7
@@ -63,7 +78,6 @@ offer_creator_agent:
   backstory: "You're a solutions strategist who excels at crafting compelling offers. You take identified pain points and company research to create tailored solutions that directly address prospect challenges and demonstrate clear value."
   tools:
     - openai_tool
-    - airtable_tool
   llm:
     model: gpt-4o
     temperature: 0.7
@@ -76,7 +90,6 @@ email_campaign_agent:
   backstory: "You're an expert email copywriter specializing in B2B sales outreach. You craft compelling, personalized emails that leverage insights from lead evaluation and pain point analysis to create relevant, engaging content that drives responses."
   tools:
     - openai_tool
-    - airtable_tool
   llm:
     model: gpt-4o
     temperature: 0.7
