@@ -10,6 +10,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from getting_automated_sales_ai_agent.crew import GettingAutomatedSalesAiAgent
 import csv
+from getting_automated_sales_ai_agent.tools import AirtableTool
 
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 
@@ -101,6 +102,48 @@ def process_leads(leads):
     except Exception as e:
         print(f"Error processing leads: {str(e)}")
 
+def check_lead_status(email):
+    """Check if a lead has already been fully evaluated in Airtable"""
+    try:
+        # Initialize AirtableTool
+        airtable_tool = AirtableTool()
+        
+        # Search for the lead in Airtable using _run instead of execute
+        result = airtable_tool._run(
+            action="search",
+            table_name="Leads",
+            search_field="Email",
+            search_value=email
+        )
+        
+        print(f"Checking status for lead with email: {email}")
+        print(f"Airtable search result: {result}")
+        
+        # If lead found, check evaluation status
+        if result and isinstance(result, dict):
+            if 'record' in result:
+                fields = result['record'].get('fields', {})
+                individual_status = fields.get('Individual Evaluation Status')
+                company_status = fields.get('Company Evaluation Status')
+                
+                print(f"Found lead with statuses - Individual: {individual_status}, Company: {company_status}")
+                
+                if individual_status == "Completed" and company_status == "Completed":
+                    return True, "Both evaluations already completed"
+                elif individual_status or company_status:
+                    status_msg = []
+                    if individual_status:
+                        status_msg.append(f"Individual: {individual_status}")
+                    if company_status:
+                        status_msg.append(f"Company: {company_status}")
+                    return False, f"Partial evaluation - {', '.join(status_msg)}"
+        
+        return False, "Lead not found"
+        
+    except Exception as e:
+        print(f"Error checking lead status: {str(e)}")
+        return False, f"Error checking status: {str(e)}"
+
 def process_csv_files(input_dir):
     """Process all CSV files in the input directory"""
     csv_files = list(Path(input_dir).glob('*.csv'))
@@ -112,24 +155,30 @@ def process_csv_files(input_dir):
             # Read the CSV file
             df = pd.read_csv(csv_file)
             
-            # Take just the first row as a DataFrame
-            first_lead_df = df.head(1)
+            # Transform all leads
+            all_leads = transform_lead_data(df)
             
-            # Transform using our existing function
-            leads = transform_lead_data(first_lead_df)
-            
-            if not leads:
+            if not all_leads:
                 print("No leads found in CSV")
                 continue
-                
-            lead = leads[0]  # Get the first (and only) lead
-            print(f"\nProcessing lead:")
-            print(f"Name: {lead.get('name')}")
-            print(f"Email: {lead.get('email')}")
-            print(f"Company: {lead.get('company')}")
             
-            # Process just this one lead
-            process_leads([lead])
+            # Filter out already processed leads
+            leads_to_process = []
+            for lead in all_leads:
+                is_completed, reason = check_lead_status(lead.get('email'))
+                if is_completed:
+                    print(f"Skipping lead {lead.get('email')}: {reason}")
+                else:
+                    leads_to_process.append(lead)
+            
+            if not leads_to_process:
+                print("All leads have been processed")
+                continue
+                
+            print(f"\nProcessing {len(leads_to_process)} leads from {csv_file.name}")
+            
+            # Process remaining leads
+            process_leads(leads_to_process)
             
         except Exception as e:
             print(f"Error processing CSV file {csv_file}: {str(e)}")

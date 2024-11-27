@@ -141,13 +141,16 @@ class GettingAutomatedSalesAiAgent:
 
     def create_tasks(self):
         """Create tasks for processing leads"""
-        if not self.inputs.get('leads'):
-            raise ValueError("No leads data provided to analyze")
-        
         tasks = []
-        for lead in self.inputs['leads']:
-            # Use email as unique identifier
-            lead_id = f"LEAD_{lead.get('email', '').replace('@', '_at_').replace('.', '_dot_')}"
+        leads = self.inputs.get('leads', [])
+        
+        print(f"\nCreating tasks for {len(leads)} leads")
+        
+        for lead_id, lead in enumerate(leads):
+            print(f"\nProcessing lead {lead_id + 1}/{len(leads)}:")
+            print(f"Name: {lead.get('name')}")
+            print(f"Email: {lead.get('email')}")
+            print(f"Company: {lead.get('company')}")
             
             # Create initial task context
             task_context = {
@@ -159,19 +162,13 @@ class GettingAutomatedSalesAiAgent:
                 'airtable_record_id': None  # Will be updated after storage task
             }
             
-            # Store Lead Task - Initial storage without Proxycurl data
+            # Use email as unique identifier
+            lead_id = f"LEAD_{lead.get('email', '').replace('@', '_at_').replace('.', '_dot_')}"
+            
+            # Store Lead Task - Initial storage and status check
             store_task = Task(
                 description=f"""
-                Store or update the following lead data in Airtable:
-
-                Lead Data:
-                - Email: {lead.get('email')}
-                - Name: {lead.get('name')}
-                - Company: {lead.get('company')}
-                - Role: {lead.get('role')}
-                - LinkedIn URL: {lead.get('linkedin_url', '')}
-                - Company LinkedIn: {lead.get('company_linkedin_url', '')}
-                - Raw Data: {json.dumps(lead)}
+                Check if this lead needs processing and store/update their data in Airtable.
 
                 Steps:
                 1. First, search for this exact email in Airtable:
@@ -180,7 +177,7 @@ class GettingAutomatedSalesAiAgent:
                    search_field: Email
                    search_value: {lead.get('email')}
                 
-                2. If not found, create a new record with these exact values:
+                3. If not found, create a new record with:
                    action: create
                    table_name: Leads
                    data:
@@ -193,14 +190,20 @@ class GettingAutomatedSalesAiAgent:
                      Individual Evaluation Status: Not Started
                      Company Evaluation Status: Not Started
                      Raw Data: {json.dumps(lead)}
-                
-                3. Return the Airtable record ID and current evaluation statuses.
+                   
+                   Then return: {{"status": "process", "record_id": "<new_record_id>"}}
                 """,
-                expected_output="Airtable record ID and evaluation statuses",
+                expected_output="JSON with status and record info",
                 agent=self.agents['data_manager'],
                 context=[task_context]
             )
             tasks.append(store_task)
+
+            # Only continue with remaining tasks if the store task output indicates processing
+            task_output = store_task.output if hasattr(store_task, 'output') else None
+            if isinstance(task_output, dict) and task_output.get('status') == 'skip':
+                print(f"Skipping lead {lead.get('email')}: {task_output.get('message')}")
+                continue
 
             # Proxycurl Enrichment Task
             proxycurl_task = Task(
@@ -218,6 +221,8 @@ class GettingAutomatedSalesAiAgent:
                 - Name: {lead.get('name')}
                 - Company: {lead.get('company')}
                 - Role: {lead.get('role')}
+
+                Ensure that your next step is to store the enriched data in Airtable in the Proxycurl Result field
                 """,
                 expected_output="Enriched lead data from Proxycurl",
                 agent=self.agents['data_enricher'],
