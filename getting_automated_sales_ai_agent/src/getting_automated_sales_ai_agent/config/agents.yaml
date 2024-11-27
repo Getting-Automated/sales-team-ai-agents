@@ -17,7 +17,7 @@ manager:
 
 individual_evaluator:
   role: "Individual Lead Evaluator"
-  goal: "Evaluate individual leads against ICP criteria using LinkedIn and other data sources"
+  goal: "Evaluate individual leads against ICP criteria using LinkedIn and other data sources and update Airtable"
   backstory: "You're an expert in evaluating individual professionals for sales opportunities. You analyze LinkedIn profiles, job roles, and professional backgrounds to determine ICP fit, focusing on decision-making authority, technical expertise, and role relevance."
   tools:
     - proxycurl_tool
@@ -31,7 +31,7 @@ individual_evaluator:
 
 company_evaluator:
   role: "Company Evaluator"
-  goal: "Evaluate companies against ICP criteria using market research and company data"
+  goal: "Evaluate companies against ICP criteria using market research and company data and update Airtable"
   backstory: "You're a business analyst specializing in company evaluation and market research. You analyze company profiles, market positions, and growth trajectories to assess organizational fit with our ICP, considering industry, size, and technical readiness."
   tools:
     - company_data_tool

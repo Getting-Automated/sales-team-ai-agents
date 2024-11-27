@@ -2,6 +2,7 @@ from crewai import Agent
 from ..tools.proxycurl_tool import ProxycurlTool
 from ..tools.openai_tool import OpenAITool
 from ..tools.airtable_tool import AirtableTool
+from datetime import datetime
 
 class IndividualEvaluation:
     """Individual-level evaluation logic"""
@@ -91,6 +92,18 @@ def evaluate_individual(task):
     tools = task.agent.tools
     
     try:
+        # Search for existing lead
+        search_result = tools['airtable_tool']._run(
+            action="search",
+            table_name="Leads",
+            search_field="Email",
+            search_value=lead.get('email')
+        )
+        
+        airtable_record_id = None
+        if search_result.get('record'):
+            airtable_record_id = search_result['record_id']
+        
         # Prepare initial individual data
         individual_data = {
             'name': lead.get('name', ''),
@@ -112,13 +125,43 @@ def evaluate_individual(task):
             'enriched_data': enriched_data
         }
         
-        # Store in Airtable for tracking
-        tools['airtable_tool'].create_record('Individual_Evaluations', {
+        # Update or create Airtable record
+        airtable_data = {
             'Name': individual_data['name'],
-            'Score': score['total'],
-            'Details': str(score['breakdown']),
-            'EnrichedData': str(enriched_data)
-        })
+            'Email': individual_data['email'],
+            'Company': lead.get('company', ''),
+            'Role': individual_data['job_title'],
+            'Individual Score': score['total'],
+            'Role Match Score': score['breakdown']['role_match']['score'],
+            'Authority Match Score': score['breakdown']['authority_match']['score'],
+            'Department Match Score': score['breakdown']['department_match']['score'],
+            'Skills Match Score': score['breakdown']['skills_match']['score'],
+            'Individual Analysis': str(score['breakdown']),
+            'Enriched Individual Data': str(enriched_data),
+            'Individual Evaluation Status': "Completed",
+            'Last Evaluated': datetime.now().strftime("%Y-%m-%d")
+        }
+        
+        if airtable_record_id:
+            # Update existing record
+            tools['airtable_tool']._run(
+                action="update",
+                table_name="Leads",
+                record_id=airtable_record_id,
+                data=airtable_data
+            )
+        else:
+            # Create new record
+            created_record = tools['airtable_tool']._run(
+                action="create",
+                table_name="Leads",
+                data=airtable_data
+            )
+            airtable_record_id = created_record.get('record_id')
+        
+        # Update the task context with the Airtable record ID
+        context['airtable_record_id'] = airtable_record_id
+        task.context = [context]
         
         return result
         
@@ -130,19 +173,18 @@ def evaluate_individual(task):
             'partial_data': individual_data
         }
 
-def get_individual_evaluator(config, tools, llm):
-    """Create an individual evaluator agent"""
+def create_individual_evaluator(config, llm):
+    """Create an agent that evaluates individual leads"""
     return Agent(
-        role="Individual Fit Analyst",
-        goal="Analyze individual-level ICP fit focusing on role, authority, and expertise",
-        backstory="""You are a talent assessment specialist who evaluates individual stakeholders 
-        within organizations. You analyze their roles, influence, technical expertise, and potential 
-        impact on purchasing decisions.""",
+        role=config['individual_evaluator']['role'],
+        goal=config['individual_evaluator']['goal'],
+        backstory=config['individual_evaluator']['backstory'],
         tools=[
-            tools['proxycurl_tool'],
-            tools['openai_tool'],
-            tools['airtable_tool']
+            ProxycurlTool(),
+            OpenAITool(),
+            AirtableTool()
         ],
-        llm=llm,
-        verbose=config['process']['verbose']
+        allow_delegation=False,
+        verbose=config['process']['verbose'],
+        llm=llm
     )

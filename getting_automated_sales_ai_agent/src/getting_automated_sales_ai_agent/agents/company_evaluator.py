@@ -2,6 +2,7 @@ from crewai import Agent
 from ..tools.company_data_tool import CompanyDataTool
 from ..tools.perplexity_tool import PerplexityTool
 from ..tools.airtable_tool import AirtableTool
+from datetime import datetime
 
 class CompanyEvaluation:
     """Company-level evaluation logic"""
@@ -92,14 +93,27 @@ def evaluate_company(task):
     tools = task.agent.tools
     
     try:
+        # Search for existing lead
+        search_result = tools['airtable_tool']._run(
+            action="search",
+            table_name="Leads",
+            search_field="Email",
+            search_value=lead.get('email')
+        )
+        
+        airtable_record_id = None
+        if search_result.get('record'):
+            airtable_record_id = search_result['record_id']
+        
         # Prepare initial company data
         company_data = {
             'name': lead.get('company', ''),
-            'domain': lead.get('company_website', ''),
             'industry': lead.get('industry', ''),
-            'employee_count': lead.get('employees', 0),
+            'company_size': lead.get('employees', 0),
+            'revenue': lead.get('revenue', 0),
             'location': lead.get('company_location', ''),
-            'technologies': lead.get('technologies', '').split(',') if lead.get('technologies') else []
+            'technologies': lead.get('technologies', []),
+            'company_linkedin_url': lead.get('company_linkedin_url', '')
         }
         
         # Enrich data
@@ -114,13 +128,24 @@ def evaluate_company(task):
             'enriched_data': enriched_data
         }
         
-        # Store in Airtable for tracking
-        tools['airtable_tool'].create_record('Company_Evaluations', {
-            'Company': company_data['name'],
-            'Score': score['total'],
-            'Details': str(score['breakdown']),
-            'EnrichedData': str(enriched_data)
-        })
+        # Update Airtable record with company evaluation results
+        if airtable_record_id:
+            tools['airtable_tool']._run(
+                action="update",
+                table_name="Leads",
+                record_id=airtable_record_id,
+                data={
+                    'Company Score': score['total'],
+                    'Industry Match Score': score['breakdown']['industry_match']['score'],
+                    'Size Match Score': score['breakdown']['size_match']['score'],
+                    'Location Match Score': score['breakdown']['location_match']['score'],
+                    'Growth Match Score': score['breakdown']['growth_match']['score'],
+                    'Company Analysis': str(score['breakdown']),
+                    'Enriched Company Data': str(enriched_data),
+                    'Company Evaluation Status': "Completed",
+                    'Last Evaluated': datetime.now().strftime("%Y-%m-%d")
+                }
+            )
         
         return result
         
@@ -128,7 +153,7 @@ def evaluate_company(task):
         print(f"Error in company evaluation: {str(e)}")
         return {
             'error': str(e),
-            'company': lead.get('company', 'Unknown'),
+            'company_name': lead.get('company', 'Unknown'),
             'partial_data': company_data
         }
 

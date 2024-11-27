@@ -1,154 +1,117 @@
+from enum import Enum
+
 # Base configuration
 BASE_NAME = "AI Sales Agent Prospecting"
 WORKSPACE_ID = "wspvmw70ZPF8XuEtI"
 
 # Table names
-class Tables:
+class Tables(str, Enum):
     LEADS = "Leads"
-    EVALUATIONS = "Lead Evaluations"
-    PAIN_POINTS = "Pain Points"
-    OFFERS = "Solution Offers"
-    CAMPAIGNS = "Email Campaigns"
+    EMAIL_CAMPAIGNS = "Email Campaigns"
+
+# Select field options
+SELECT_OPTIONS = {
+    "Individual Evaluation Status": [
+        {"name": "Not Started"},
+        {"name": "In Progress"},
+        {"name": "Completed"},
+        {"name": "Needs Review"}
+    ],
+    "Company Evaluation Status": [
+        {"name": "Not Started"},
+        {"name": "In Progress"},
+        {"name": "Completed"},
+        {"name": "Needs Review"}
+    ],
+    "Lead Tier": [
+        {"name": "High"},
+        {"name": "Medium"},
+        {"name": "Low"}
+    ],
+    "Wait Time": [
+        {"name": "Same Day"},
+        {"name": "1 Day"},
+        {"name": "2 Days"},
+        {"name": "3 Days"},
+        {"name": "5 Days"},
+        {"name": "1 Week"},
+        {"name": "2 Weeks"}
+    ],
+    "Status": [
+        {"name": "Drafted"},
+        {"name": "Ready to Send"},
+        {"name": "Sent"},
+        {"name": "Engaged"},
+        {"name": "Completed"},
+        {"name": "Stopped"}
+    ]
+}
 
 # Table structure
 TABLE_SCHEMAS = {
-    Tables.LEADS: [
+    Tables.LEADS.value: [
         {"name": "Lead ID", "type": "singleLineText"},
         {"name": "Name", "type": "singleLineText"},
         {"name": "Email", "type": "email"},
         {"name": "Company", "type": "singleLineText"},
-        {"name": "Title", "type": "singleLineText"},
+        {"name": "Role", "type": "singleLineText"},
         {"name": "LinkedIn URL", "type": "url"},
         {"name": "Company LinkedIn", "type": "url"},
-        {"name": "Raw Data", "type": "multilineText"}
-    ],
-    Tables.EVALUATIONS: [
-        {"name": "Lead ID", "type": "singleLineText"},
-        {"name": "Individual Score", "type": "number", "options": {"precision": 1}},
-        {"name": "Company Score", "type": "number", "options": {"precision": 1}},
-        {"name": "Overall Score", "type": "number", "options": {"precision": 1}},
-        {"name": "Decision Making Level", "type": "singleSelect", "options": {
-            "choices": [
-                {"name": "Final Decision Maker"},
-                {"name": "Key Influencer"},
-                {"name": "Budget Holder"},
-                {"name": "Individual Contributor"}
-            ]
-        }},
-        {"name": "Department Match", "type": "multipleSelects", "options": {
-            "choices": [
-                {"name": "IT"},
-                {"name": "Engineering"},
-                {"name": "Operations"}
-            ]
-        }},
-        {"name": "Industry Match", "type": "multipleSelects", "options": {
-            "choices": [
-                {"name": "Insurance"},
-                {"name": "Employee Benefits"},
-                {"name": "Insurance Broker"}
-            ]
-        }},
-        {"name": "Technical Analysis", "type": "multilineText"},
+        {"name": "Individual Score", "type": "number"},
+        {"name": "Individual Evaluation Status", "type": "singleSelect", "options": {"choices": SELECT_OPTIONS["Individual Evaluation Status"]}},
+        {"name": "Role Match Score", "type": "number"},
+        {"name": "Authority Match Score", "type": "number"},
+        {"name": "Department Match Score", "type": "number"},
+        {"name": "Skills Match Score", "type": "number"},
+        {"name": "Individual Analysis", "type": "multilineText"},
+        {"name": "Enriched Individual Data", "type": "multilineText"},
+        {"name": "Company Score", "type": "number"},
+        {"name": "Company Evaluation Status", "type": "singleSelect", "options": {"choices": SELECT_OPTIONS["Company Evaluation Status"]}},
+        {"name": "Industry Match Score", "type": "number"},
+        {"name": "Size Match Score", "type": "number"},
+        {"name": "Location Match Score", "type": "number"},
+        {"name": "Growth Match Score", "type": "number"},
         {"name": "Company Analysis", "type": "multilineText"},
-        {"name": "Evaluation Summary", "type": "multilineText"}
+        {"name": "Enriched Company Data", "type": "multilineText"},
+        {"name": "Lead Tier", "type": "singleSelect", "options": {"choices": SELECT_OPTIONS["Lead Tier"]}},
+        {"name": "Last Evaluated", "type": "date"}
     ],
-    Tables.PAIN_POINTS: [
-        {"name": "Lead ID", "type": "singleLineText"},
-        {"name": "Primary Pain Points", "type": "multilineText"},
-        {"name": "Technical Challenges", "type": "multilineText"},
-        {"name": "Operational Challenges", "type": "multilineText"},
-        {"name": "Industry Specific Issues", "type": "multilineText"},
-        {"name": "Analysis", "type": "multilineText"},
-        {"name": "Priority Level", "type": "singleSelect", "options": {
-            "choices": [
-                {"name": "High"},
-                {"name": "Medium"},
-                {"name": "Low"}
-            ]
-        }}
-    ],
-    Tables.OFFERS: [
-        {"name": "Lead ID", "type": "singleLineText"},
-        {"name": "Solution Name", "type": "singleLineText"},
-        {"name": "Value Proposition", "type": "multilineText"},
-        {"name": "Key Benefits", "type": "multilineText"},
-        {"name": "Technical Fit", "type": "multilineText"},
-        {"name": "ROI Analysis", "type": "multilineText"},
-        {"name": "Customization Notes", "type": "multilineText"}
-    ],
-    Tables.CAMPAIGNS: [
+    Tables.EMAIL_CAMPAIGNS.value: [
+        {"name": "Campaign ID", "type": "singleLineText"},
         {"name": "Lead ID", "type": "singleLineText"},
         {"name": "Email Subject", "type": "singleLineText"},
         {"name": "Email Body", "type": "multilineText"},
         {"name": "Sequence Number", "type": "number"},
-        {"name": "Wait Days", "type": "number"},
+        {"name": "Wait Time", "type": "singleSelect", "options": {"choices": SELECT_OPTIONS["Wait Time"]}},
+        {"name": "Status", "type": "singleSelect", "options": {"choices": SELECT_OPTIONS["Status"]}},
         {"name": "Personalization Notes", "type": "multilineText"},
         {"name": "Pain Points Addressed", "type": "multilineText"},
         {"name": "Call To Action", "type": "singleLineText"}
     ]
 }
 
-# Sample data for table initialization
+# Sample data for initialization
 SAMPLE_DATA = {
-    Tables.LEADS: {
+    Tables.LEADS.value: {
         "Lead ID": "L001",
         "Name": "John Doe",
-        "Email": "john@example.com",
+        "Email": "john.doe@example.com",
         "Company": "Example Corp",
-        "Role": "CEO",
-        "Lead Score": 85,
-        "Lead Tier": "High",
-        "Seniority": "C-Suite",
-        "Departments": "Executive Leadership",
-        "Location": "New York, NY, United States",
-        "Company Size": 500,
-        "Annual Revenue": "$50M-100M",
-        "Technologies": "Salesforce, Workday, Oracle",
-        "Keywords": "digital transformation, enterprise software",
-        "Company Description": "Leading enterprise software company...",
-        "Technical Fit Score": 8.5,
-        "Technical Analysis": "Strong technical alignment with our stack...",
-        "Pain Points": "Integration challenges, scalability needs",
-        "Matching Criteria": "Company size, tech stack, industry",
-        "Recommended Approach": "Focus on enterprise integration capabilities",
-        "Next Steps": "Schedule technical demo",
-        "Justification": "Perfect fit for our enterprise solution",
-        "LinkedIn URL": "https://linkedin.com/in/johndoe",
-        "Company LinkedIn": "https://linkedin.com/company/example-corp",
-        "Company Website": "https://example.com",
-        "Enriched Profile": "{\"additional_data\": \"full enriched profile json\"}"
+        "Role": "CTO",
+        "Individual Score": 85,
+        "Individual Evaluation Status": "Not Started",
+        "Company Score": 78,
+        "Company Evaluation Status": "Not Started",
+        "Lead Tier": "High"
     },
-    Tables.CAMPAIGNS: {
+    Tables.EMAIL_CAMPAIGNS.value: {
+        "Campaign ID": "C001",
         "Lead ID": "L001",
-        "Campaign Name": "Enterprise Solution Introduction",
-        "Campaign Tier": "High",
-        "Sequence Position": 1,
-        "Wait Time": "Same Day",
-        "Email Draft": "Initial outreach email content...",
-        "Subject Line Variations": "Streamline Your Operations\nBoost Your Efficiency",
-        "CTA Variations": "Book a Demo\nSchedule a Call",
-        "Previous Response": "",
-        "Status": "Drafted",
-        "Engagement Metrics": "Not started",
-        "Last Sent Date": "2024-03-20",
-        "Next Send Date": "2024-03-21"
-    },
-    Tables.PAIN_POINTS: {
-        "Industry": "Technology",
-        "Pain Points": "Integration challenges, scalability issues",
-        "Keywords": "integration, scale, efficiency",
-        "Highlighted Quotes": "Need better integration solutions"
-    },
-    Tables.OFFERS: {
-        "Offer ID": "O001",
-        "Offer Name": "Automated Timesheet Collection",
-        "Category": "Time & Attendance",
-        "Description": "Digital timesheet submission and approval system with mobile access",
-        "Key Benefits": "- Eliminate manual data entry\n- Speed up approvals\n- Reduce billing errors\n- Real-time visibility",
-        "Industry Fit": "Staffing & Recruiting, Professional Services",
-        "Customization Options": "- Mobile app branding\n- Custom approval workflows\n- Integration options",
-        "Target Client Type": ["Small Staffing", "Mid-size Staffing"]
+        "Email Subject": "Improving Your Staffing Operations",
+        "Email Body": "Hi [Name],\n\nI noticed your company...",
+        "Sequence Number": 1,
+        "Wait Time": "1 Day",
+        "Status": "Drafted"
     }
 }
 

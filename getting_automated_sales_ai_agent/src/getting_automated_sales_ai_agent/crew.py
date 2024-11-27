@@ -124,145 +124,102 @@ class GettingAutomatedSalesAiAgent:
         if not self.inputs.get('leads'):
             raise ValueError("No leads data provided to analyze")
         
-        # Get ICP configuration
-        icp_config = self.icp_config.get('customer_icp', {})
-        
         tasks = []
         for lead in self.inputs['leads']:
-            try:
-                # Individual Lead Evaluation Task
-                tasks.append(Task(
-                    description=f"""
-                    {self.crew_config['individual_evaluator']['backstory']}
-                    
-                    Goal: {self.crew_config['individual_evaluator']['goal']}
-                    
-                    Evaluate individual lead {lead.get('name')} against these ICP criteria:
-                    - Target Departments: {', '.join(icp_config.get('target_departments', []))}
-                    - Job Titles: {', '.join(icp_config.get('job_titles', []))}
-                    - Decision Making Authority: {', '.join(icp_config.get('decision_making_authority', []))}
-                    
-                    Lead Data: {json.dumps(lead, indent=2)}
-                    """,
-                    expected_output="Detailed individual evaluation report with ICP alignment score",
-                    agent=self.agents['individual_evaluator']
-                ))
-
-                # Company Evaluation Task
-                tasks.append(Task(
-                    description=f"""
-                    {self.crew_config['agents']['company_evaluator']['backstory']}
-                    
-                    Goal: {self.crew_config['agents']['company_evaluator']['goal']}
-                    
-                    Evaluate company {lead.get('company')} against these ICP criteria:
-                    - Industries: {', '.join(icp_config.get('industries', []))}
-                    - Business Models: {', '.join(icp_config.get('business_models', []))}
-                    - Technologies: {', '.join(icp_config.get('technologies', []))}
-                    - Growth Stages: {', '.join(icp_config.get('growth_stages', []))}
-                    - Employee Count Range: {icp_config.get('minimum_requirements', {}).get('employee_count_min')} - {icp_config.get('minimum_requirements', {}).get('employee_count_max')}
-                    
-                    Company Data: {json.dumps(lead, indent=2)}
-                    """,
-                    expected_output="Comprehensive company analysis with fit assessment",
-                    agent=self.agents['company_evaluator']
-                ))
-
-                # Pain Point Analysis Task
-                tasks.append(Task(
-                    description=f"""
-                    {self.crew_config['agents']['pain_point_analyst']['backstory']}
-                    
-                    Goal: {self.crew_config['agents']['pain_point_analyst']['goal']}
-                    
-                    Profile Overview: {icp_config.get('profile_overview', '')}
-                    
-                    Analyze pain points for {lead.get('company')} considering:
-                    - Industry challenges in {lead.get('industry')}
-                    - Technical infrastructure needs
-                    - Growth-related operational challenges
-                    
-                    Previous Evaluations: {{context.individual_evaluation}}
-                    Company Analysis: {{context.company_evaluation}}
-                    """,
-                    expected_output="Detailed pain point analysis with prioritization",
-                    agent=self.agents['pain_point_agent'],
-                    context=["individual_evaluation", "company_evaluation"]
-                ))
-
-                # Offer Creation Task
-                tasks.append(Task(
-                    description=f"""
-                    {self.crew_config['agents']['offer_creator']['backstory']}
-                    
-                    Goal: {self.crew_config['agents']['offer_creator']['goal']}
-                    
-                    Create personalized solution offering for {lead.get('company')}:
-                    - Address identified pain points
-                    - Align with ICP profile: {icp_config.get('profile_overview', '')}
-                    - Demonstrate clear value proposition and ROI
-                    
-                    Pain Points: {{context.pain_points}}
-                    Company Evaluation: {{context.company_evaluation}}
-                    """,
-                    expected_output="Personalized offer with value proposition",
-                    agent=self.agents['offer_creator_agent'],
-                    context=["pain_point_analysis", "company_evaluation"]
-                ))
-
-                # Email Campaign Task
-                tasks.append(Task(
-                    description=f"""
-                    Generate a 5-email campaign sequence and store in Airtable:
-                    Lead ID: {lead_id}
-                    
-                    Create 5 strategic emails in sequence using the airtable_tool:
-
-                    1. Initial Outreach (Sequence Number: 1, Wait Days: 0)
-                    - Focus on introduction and primary value proposition
-                    - Reference specific company research
-                    
-                    2. Value-Add Follow-up (Sequence Number: 2, Wait Days: 3)
-                    - Share relevant content or insight
-                    - Build credibility without hard selling
-                    
-                    3. Pain Point Focus (Sequence Number: 3, Wait Days: 5)
-                    - Address specific pain points identified
-                    - Share relevant industry insights
-                    
-                    4. ROI Discussion (Sequence Number: 4, Wait Days: 7)
-                    - Present concrete business value
-                    - Include specific metrics or outcomes
-                    
-                    5. Final Value Proposition (Sequence Number: 5, Wait Days: 10)
-                    - Create urgency
-                    - Make strong final offer
-                    - Include all previous context
-                    
-                    For each email, create a record in the 'Email Campaigns' table with:
-                    - Lead ID: {lead_id}
-                    - Email Subject: Unique, compelling subject line
-                    - Email Body: Personalized content
-                    - Sequence Number: (1 through 5)
-                    - Wait Days: (0, 3, 5, 7, or 10)
-                    - Personalization Notes: Specific personalization points
-                    - Pain Points Addressed: Pain points tackled in this email
-                    - Call To Action: Primary CTA for this stage
-                    
-                    Ensure each email:
-                    1. Builds upon previous communications
-                    2. References any positive interactions
-                    3. Provides unique value at each touch
-                    4. Maintains consistent narrative
-                    5. Gets progressively more direct with CTAs
-                    """,
-                    expected_output="Complete email sequence (5 emails) created in Airtable",
-                    agent=self.agents['email_campaign_agent']
-                ))
-
-            except Exception as e:
-                print(f"Error creating tasks for lead {lead.get('name')}: {str(e)}")
-                continue
+            # Use email as unique identifier
+            lead_id = f"LEAD_{lead.get('email', '').replace('@', '_at_').replace('.', '_dot_')}"
+            
+            # Create context as a list with a properly formatted dictionary
+            task_context = [{
+                'description': f"Context for lead {lead.get('name')}",
+                'expected_output': "Lead and configuration data",
+                'lead': lead,
+                'config': self.icp_config,
+                'lead_id': lead_id,
+                'airtable_record_id': None  # We'll update this after the initial search/create
+            }]
+            
+            # Initial Lead Storage Task
+            tasks.append(Task(
+                description=f"""
+                Store or update lead in Airtable Leads table.
+                First, search for existing lead by email: {lead.get('email')}
+                
+                Use the airtable_tool to:
+                1. Search for existing lead:
+                   - action: "search"
+                   - table_name: "Leads"
+                   - search_field: "Email"
+                   - search_value: "{lead.get('email')}"
+                
+                2. If not found, create new record:
+                   - action: "create"
+                   - table_name: "Leads"
+                   - data:
+                     - Lead ID: {lead_id}
+                     - Name: {lead.get('name')}
+                     - Email: {lead.get('email')}
+                     - Company: {lead.get('company')}
+                     - Role: {lead.get('role')}
+                     - Individual Evaluation Status: "Not Started"
+                     - Company Evaluation Status: "Not Started"
+                     - Raw Data: {json.dumps(lead)}
+                
+                3. If found, update the task context with the found record ID.
+                
+                Return the Airtable record ID and current evaluation statuses.
+                Update the task context with the Airtable record ID.
+                """,
+                expected_output="Airtable record details including record ID",
+                agent=self.agents['individual_evaluator'],
+                context=task_context
+            ))
+            
+            # Individual Evaluation Task
+            tasks.append(Task(
+                description=f"""
+                {self.crew_config['individual_evaluator']['backstory']}
+                
+                Goal: {self.crew_config['individual_evaluator']['goal']}
+                
+                Evaluate individual lead {lead.get('name')} against these ICP criteria:
+                - Target Departments: {', '.join(self.icp_config.get('target_departments', []))}
+                - Job Titles: {', '.join(self.icp_config.get('job_titles', []))}
+                - Decision Making Authority: {', '.join(self.icp_config.get('decision_making_authority', []))}
+                
+                Lead Data: {json.dumps(lead, indent=2)}
+                
+                After evaluation, update the Airtable record using:
+                - action: "update"
+                - table_name: "Leads"
+                - record_id: [Use the Airtable record ID from the task context]
+                - data: [Include evaluation results]
+                """,
+                expected_output="Detailed individual evaluation report with ICP alignment score",
+                agent=self.agents['individual_evaluator'],
+                context=task_context
+            ))
+            
+            # Company Evaluation Task
+            tasks.append(Task(
+                description=f"""
+                {self.crew_config['company_evaluator']['backstory']}
+                
+                Goal: {self.crew_config['company_evaluator']['goal']}
+                
+                Evaluate company {lead.get('company')} against these ICP criteria:
+                - Industries: {', '.join(self.icp_config.get('industries', []))}
+                - Business Models: {', '.join(self.icp_config.get('business_models', []))}
+                - Technologies: {', '.join(self.icp_config.get('technologies', []))}
+                - Growth Stages: {', '.join(self.icp_config.get('growth_stages', []))}
+                - Employee Count Range: {self.icp_config.get('minimum_requirements', {}).get('employee_count_min')} - {self.icp_config.get('minimum_requirements', {}).get('employee_count_max')}
+                
+                Company Data: {json.dumps(lead, indent=2)}
+                """,
+                expected_output="Company evaluation results",
+                agent=self.agents['company_evaluator'],
+                context=task_context
+            ))
 
         return tasks
 
