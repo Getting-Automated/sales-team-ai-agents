@@ -187,6 +187,139 @@ The system follows a sophisticated data flow process:
    - Structured for easy retrieval and updates
    - Maintains relationships between different data points
 
+## Airtable Integration
+
+### Overview
+The system uses Airtable as its primary data store, with a sophisticated schema designed for lead management and email campaign tracking. The integration is handled through automated setup scripts and a dedicated Airtable tool.
+
+### Base Structure
+
+The Airtable base "AI Sales Agent Prospecting" consists of two main tables:
+
+1. **Leads Table**
+   ```
+   ├── Basic Lead Info
+   │   ├── Lead ID (Text)
+   │   ├── Name (Text)
+   │   ├── Email (Email)
+   │   ├── Company (Text)
+   │   ├── Role (Text)
+   │   ├── LinkedIn URL (URL)
+   │   └── Company LinkedIn (URL)
+   │
+   ├── Evaluation Status
+   │   ├── Individual Evaluation Status (Select)
+   │   │   └── Options: Not Started, In Progress, Completed, Needs Review
+   │   └── Company Evaluation Status (Select)
+   │       └── Options: Not Started, In Progress, Completed, Needs Review
+   │
+   ├── Scoring Metrics
+   │   ├── Individual Score (Number)
+   │   ├── Company Score (Number)
+   │   ├── Role Match Score (Number)
+   │   ├── Authority Match Score (Number)
+   │   ├── Department Match Score (Number)
+   │   ├── Skills Match Score (Number)
+   │   ├── Industry Match Score (Number)
+   │   ├── Size Match Score (Number)
+   │   ├── Location Match Score (Number)
+   │   └── Growth Match Score (Number)
+   │
+   └── Analysis Data
+       ├── Individual Analysis (Long Text)
+       ├── Company Analysis (Long Text)
+       ├── Enriched Individual Data (Long Text)
+       ├── Enriched Company Data (Long Text)
+       ├── Raw Data (Long Text)
+       └── Proxycurl Result (Long Text)
+   ```
+
+2. **Email Campaigns Table**
+   ```
+   ├── Campaign Info
+   │   ├── Lead ID (Text)
+   │   ├── Email Subject (Text)
+   │   ├── Email Body (Long Text)
+   │   └── Sequence Number (Number)
+   │
+   └── Campaign Details
+       ├── Wait Days (Number)
+       ├── Personalization Notes (Long Text)
+       ├── Pain Points Addressed (Long Text)
+       └── Call To Action (Text)
+   ```
+
+### Setup and Configuration
+
+1. **Initial Setup**
+   ```bash
+   # Initialize Airtable base with schema
+   python setup/airtable_initialization.py
+   
+   # Force recreation of base
+   python setup/airtable_initialization.py --force
+   ```
+
+2. **Environment Variables**
+   ```env
+   AI_AGENT_AIRTABLE_API_KEY=your_api_key
+   AIRTABLE_BASE_ID=your_base_id
+   AIRTABLE_WORKSPACE_ID=your_workspace_id
+   ```
+
+3. **Schema Management**
+   - The schema is defined in `setup/config/airtable_config.py`
+   - Includes table definitions, field types, and select options
+   - Automated schema updates via initialization script
+
+### Data Flow
+
+1. **Lead Creation**
+   ```python
+   # Example of lead data structure
+   lead_data = {
+       "Lead ID": "L001",
+       "Name": "John Doe",
+       "Email": "john.doe@example.com",
+       "Company": "Example Corp",
+       "Individual Evaluation Status": "Not Started",
+       "Company Evaluation Status": "Not Started"
+   }
+   ```
+
+2. **Status Tracking**
+   - Individual and Company evaluation statuses
+   - Color-coded status indicators:
+     - Not Started: Red
+     - In Progress: Yellow
+     - Completed: Green
+     - Needs Review: Orange
+
+3. **Scoring System**
+   - Numerical scores (0-10) for various metrics
+   - Automated calculation based on agent evaluations
+   - Tier classification (High/Medium/Low) based on aggregate scores
+
+### Integration with Agents
+
+The Data Manager Agent interacts with Airtable through the AirtableTool, which provides:
+- Record creation and updates
+- Data validation
+- Status management
+- Score calculations
+- Campaign tracking
+
+```python
+# Example of agent interaction with Airtable
+from getting_automated_sales_ai_agent.tools import AirtableTool
+
+airtable_tool = AirtableTool(llm=self.llm)
+result = airtable_tool.create_or_update_lead(
+    lead_data,
+    evaluation_status="In Progress"
+)
+```
+
 ## Setup
 
 ### Prerequisites
