@@ -235,14 +235,19 @@ class GettingAutomatedSalesAiAgent:
                 Steps:
                 1. Use the proxycurl_tool to fetch data for the LinkedIn URL above
                 2. If the URL is empty or invalid, return an empty result
-                3. Return the enriched data in a structured JSON format
+                3. Return the enriched data in this exact JSON format:
+                {{
+                    "success": true/false,
+                    "data": <complete proxycurl response>,
+                    "error": "<error message if any>"
+                }}
                 
                 Lead context:
                 - Name: {lead.get('name')}
                 - Company: {lead.get('company')}
                 - Role: {lead.get('role')}
                 """,
-                expected_output="Enriched lead data from Proxycurl",
+                expected_output="Enriched lead data from Proxycurl in JSON format",
                 agent=self.agents['data_enricher'],
                 context=[store_task]
             )
@@ -255,17 +260,20 @@ class GettingAutomatedSalesAiAgent:
                 
                 Steps:
                 1. Get the record ID from the store_task context
-                2. Update the Airtable record with:
+                2. Get the Proxycurl data from proxycurl_task context
+                3. Update the Airtable record with:
                    action: update
                    table_name: Leads
+                   record_id: <from store_task>
                    data:
-                     Proxycurl Result: <insert the ENTIRE Proxycurl JSON response as a string>
+                     Proxycurl Result: <complete proxycurl JSON response>
+                     Enrichment Status: <"Success" or "Failed">
+                     Last Enriched: <current date in YYYY-MM-DD format>
                 
                 IMPORTANT:
-                - Do NOT parse or modify the Proxycurl data
-                - Store the COMPLETE JSON response as a single string
-                - Do NOT extract individual fields
-                - The data should be stored exactly as received from the Proxycurl tool
+                - Store the COMPLETE JSON response as received
+                - Do not modify or parse the data
+                - Include success/failure status
                 """,
                 expected_output="Updated Airtable record with complete Proxycurl JSON data",
                 agent=self.agents['data_manager'],
@@ -280,6 +288,16 @@ class GettingAutomatedSalesAiAgent:
                 
                 Goal: {self.crew_config['individual_evaluator']['goal']}
                 
+                IMPORTANT: The Proxycurl data is in your context from proxycurl_task.output.
+                The data will be in this format:
+                {{
+                    "success": true/false,
+                    "data": <complete proxycurl response>,
+                    "error": "<error message if any>"
+                }}
+                
+                DO NOT try to fetch new data from LinkedIn directly.
+                
                 Evaluate {lead.get('name')} from {lead.get('company')} using:
                 1. Initial Data:
                    - Name: {lead.get('name')}
@@ -288,8 +306,7 @@ class GettingAutomatedSalesAiAgent:
                    - LinkedIn: {lead.get('linkedin_url', '')}
                 
                 2. Enriched Data:
-                   Review the Proxycurl data from the previous task (available in your context)
-                   to evaluate these criteria:
+                   Extract these details from proxycurl_task.output.data:
                    
                    a) Role and Seniority:
                       - Current title and level
@@ -316,6 +333,10 @@ class GettingAutomatedSalesAiAgent:
                 - Departments: {', '.join(self.icp_config.get('departments', []))}
                 - Seniority Levels: {', '.join(self.icp_config.get('seniority_levels', []))}
                 - Required Skills: {', '.join(self.icp_config.get('required_skills', []))}
+                
+                First, check if proxycurl_task.output.success is true.
+                If true, analyze the data in proxycurl_task.output.data.
+                If false, note the error and evaluate based on available information.
                 
                 Provide your evaluation in this exact JSON format:
                 {{

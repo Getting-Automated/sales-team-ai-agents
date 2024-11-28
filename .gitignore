@@ -1,6 +1,103 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
 getting_automated_sales_ai_agent/inputs/apollo-contacts-export (2).csv
 getting_automated_sales_ai_agent/.DS_Store
 getting_automated_sales_ai_agent/src/getting_automated_sales_ai_agent/.DS_Store
 getting_automated_sales_ai_agent/src/getting_automated_sales_ai_agent/ui/.DS_Store
-.DS_Store
-.env
+
+# Logs and databases
+*.log
+*.sqlite
+*.db
+
+# Coverage and test reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Documentation
+docs/_build/
+site/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Environments
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Node (if using any JavaScript/Node.js components)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

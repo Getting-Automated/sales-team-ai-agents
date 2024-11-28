@@ -5,7 +5,7 @@
 #   verbose: true
 
 llm:
-  model: "gpt-4o"
+  model: "gpt-4o-mini"
   temperature: 0.7
   max_tokens: 1500
   verbose: true
@@ -29,7 +29,7 @@ data_enricher:
   tools:
     - proxycurl_tool
   llm:
-    model: gpt-4o
+    model: gpt-4o-mini
     temperature: 0.7
     max_tokens: 1500
   verbose: true
@@ -41,7 +41,7 @@ individual_evaluator:
   tools:
     - openai_tool
   llm:
-    model: gpt-4o
+    model: gpt-4o-mini
     temperature: 0.7
     max_tokens: 1500
   verbose: true
@@ -54,7 +54,7 @@ company_evaluator:
     - company_data_tool
     - perplexity_tool
   llm:
-    model: gpt-4o
+    model: gpt-4o-mini
     temperature: 0.7
     max_tokens: 1500
   verbose: true
@@ -67,7 +67,7 @@ pain_point_agent:
     - perplexity_tool
     - openai_tool
   llm:
-    model: gpt-4o
+    model: gpt-4o-mini
     temperature: 0.7
     max_tokens: 1500
   verbose: true
@@ -79,7 +79,7 @@ offer_creator_agent:
   tools:
     - openai_tool
   llm:
-    model: gpt-4o
+    model: gpt-4o-mini
     temperature: 0.7
     max_tokens: 1500
   verbose: true
@@ -91,7 +91,7 @@ email_campaign_agent:
   tools:
     - openai_tool
   llm:
-    model: gpt-4o
+    model: gpt-4o-mini
     temperature: 0.7
     max_tokens: 1500
   verbose: true
