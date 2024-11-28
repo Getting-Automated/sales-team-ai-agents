@@ -16,6 +16,10 @@ from .tools.airtable_tool import AirtableTool
 from .tools.perplexity_tool import PerplexityTool
 from .tools.openai_tool import OpenAITool
 
+# Import agents
+from .agents.pain_point_agent import get_pain_point_agent
+from .agents.email_campaign_agent import get_email_campaign_agent
+
 class GettingAutomatedSalesAiAgent:
     """GettingAutomatedSalesAiAgent crew"""
 
@@ -89,7 +93,6 @@ class GettingAutomatedSalesAiAgent:
                 goal=manager_config['goal'],
                 backstory=manager_config['backstory'],
                 llm=self.llm,
-                verbose=self.crew_config['process']['verbose'],
                 allow_delegation=True,
                 memory=True
             )
@@ -129,6 +132,26 @@ class GettingAutomatedSalesAiAgent:
                 tools=[self.tools['company_data_tool'], self.tools['perplexity_tool']],
                 llm=self.llm
             )
+
+            # Add pain point identification agent
+            agents['pain_point_agent'] = Agent(
+                role=self.crew_config['pain_point_agent']['role'],
+                goal=self.crew_config['pain_point_agent']['goal'],
+                backstory=self.crew_config['pain_point_agent']['backstory'],
+                tools=[self.tools['perplexity_tool'], self.tools['openai_tool']],  
+                llm=self.llm,
+                verbose=self.crew_config['pain_point_agent']['verbose']
+            )
+            
+            # Add email campaign generation agent
+            agents['email_campaign_agent'] = Agent(
+                role=self.crew_config['email_campaign_agent']['role'],
+                goal=self.crew_config['email_campaign_agent']['goal'],
+                backstory=self.crew_config['email_campaign_agent']['backstory'],
+                tools=[self.tools['openai_tool']],  
+                llm=self.llm,
+                verbose=self.crew_config['email_campaign_agent']['verbose']
+            )
             
             return agents
             
@@ -141,16 +164,13 @@ class GettingAutomatedSalesAiAgent:
 
     def create_tasks(self):
         """Create tasks for processing leads"""
+        if not self.inputs.get('leads'):
+            raise ValueError("No leads data provided to analyze")
+        
         tasks = []
-        leads = self.inputs.get('leads', [])
-        
-        print(f"\nCreating tasks for {len(leads)} leads")
-        
-        for lead_id, lead in enumerate(leads):
-            print(f"\nProcessing lead {lead_id + 1}/{len(leads)}:")
-            print(f"Name: {lead.get('name')}")
-            print(f"Email: {lead.get('email')}")
-            print(f"Company: {lead.get('company')}")
+        for lead in self.inputs['leads']:
+            # Use email as unique identifier
+            lead_id = f"LEAD_{lead.get('email', '').replace('@', '_at_').replace('.', '_dot_')}"
             
             # Create initial task context
             task_context = {
@@ -162,13 +182,19 @@ class GettingAutomatedSalesAiAgent:
                 'airtable_record_id': None  # Will be updated after storage task
             }
             
-            # Use email as unique identifier
-            lead_id = f"LEAD_{lead.get('email', '').replace('@', '_at_').replace('.', '_dot_')}"
-            
-            # Store Lead Task - Initial storage and status check
+            # Store Lead Task - Initial storage without Proxycurl data
             store_task = Task(
                 description=f"""
-                Check if this lead needs processing and store/update their data in Airtable.
+                Store or update the following lead data in Airtable:
+
+                Lead Data:
+                - Email: {lead.get('email')}
+                - Name: {lead.get('name')}
+                - Company: {lead.get('company')}
+                - Role: {lead.get('role')}
+                - LinkedIn URL: {lead.get('linkedin_url', '')}
+                - Company LinkedIn: {lead.get('company_linkedin_url', '')}
+                - Raw Data: {json.dumps(lead)}
 
                 Steps:
                 1. First, search for this exact email in Airtable:
@@ -177,7 +203,7 @@ class GettingAutomatedSalesAiAgent:
                    search_field: Email
                    search_value: {lead.get('email')}
                 
-                3. If not found, create a new record with:
+                2. If not found, create a new record with these exact values:
                    action: create
                    table_name: Leads
                    data:
@@ -190,20 +216,14 @@ class GettingAutomatedSalesAiAgent:
                      Individual Evaluation Status: Not Started
                      Company Evaluation Status: Not Started
                      Raw Data: {json.dumps(lead)}
-                   
-                   Then return: {{"status": "process", "record_id": "<new_record_id>"}}
+                
+                3. Return the Airtable record ID and current evaluation statuses.
                 """,
-                expected_output="JSON with status and record info",
+                expected_output="Airtable record ID and evaluation statuses",
                 agent=self.agents['data_manager'],
                 context=[task_context]
             )
             tasks.append(store_task)
-
-            # Only continue with remaining tasks if the store task output indicates processing
-            task_output = store_task.output if hasattr(store_task, 'output') else None
-            if isinstance(task_output, dict) and task_output.get('status') == 'skip':
-                print(f"Skipping lead {lead.get('email')}: {task_output.get('message')}")
-                continue
 
             # Proxycurl Enrichment Task
             proxycurl_task = Task(
@@ -221,8 +241,6 @@ class GettingAutomatedSalesAiAgent:
                 - Name: {lead.get('name')}
                 - Company: {lead.get('company')}
                 - Role: {lead.get('role')}
-
-                Ensure that your next step is to store the enriched data in Airtable in the Proxycurl Result field
                 """,
                 expected_output="Enriched lead data from Proxycurl",
                 agent=self.agents['data_enricher'],
@@ -262,22 +280,69 @@ class GettingAutomatedSalesAiAgent:
                 
                 Goal: {self.crew_config['individual_evaluator']['goal']}
                 
-                Use the enriched Proxycurl data from the previous task to evaluate:
-                1. Role and seniority alignment
-                2. Decision-making authority
-                3. Department and function match
-                4. Skills and experience match
+                Evaluate {lead.get('name')} from {lead.get('company')} using:
+                1. Initial Data:
+                   - Name: {lead.get('name')}
+                   - Company: {lead.get('company')}
+                   - Role: {lead.get('role')}
+                   - LinkedIn: {lead.get('linkedin_url', '')}
                 
-                Provide:
-                1. Overall ICP alignment score (0-100)
-                2. Detailed analysis of fit against each criterion
-                3. Recommendation for proceeding with this lead
+                2. Enriched Data:
+                   Review the Proxycurl data from the previous task (available in your context)
+                   to evaluate these criteria:
+                   
+                   a) Role and Seniority:
+                      - Current title and level
+                      - Years of experience
+                      - Career progression
+                   
+                   b) Decision-Making Authority:
+                      - Position in organization
+                      - Team size and scope
+                      - Budget responsibility indicators
+                   
+                   c) Department and Function:
+                      - Current department
+                      - Primary function
+                      - Areas of responsibility
+                   
+                   d) Skills and Experience:
+                      - Technical skills
+                      - Industry expertise
+                      - Relevant certifications
                 
-                Base your evaluation on both the initial lead data and the enriched Proxycurl data.
+                Compare against ICP criteria:
+                - Target Roles: {', '.join(self.icp_config.get('target_roles', []))}
+                - Departments: {', '.join(self.icp_config.get('departments', []))}
+                - Seniority Levels: {', '.join(self.icp_config.get('seniority_levels', []))}
+                - Required Skills: {', '.join(self.icp_config.get('required_skills', []))}
+                
+                Provide your evaluation in this exact JSON format:
+                {{
+                    "overall_score": <number 0-100>,
+                    "role_match": {{
+                        "score": <number 0-100>,
+                        "analysis": "<detailed analysis of role match>"
+                    }},
+                    "authority_match": {{
+                        "score": <number 0-100>,
+                        "analysis": "<detailed analysis of authority match>"
+                    }},
+                    "department_match": {{
+                        "score": <number 0-100>,
+                        "analysis": "<detailed analysis of department match>"
+                    }},
+                    "skills_match": {{
+                        "score": <number 0-100>,
+                        "analysis": "<detailed analysis of skills match>"
+                    }},
+                    "detailed_analysis": "<comprehensive analysis of all factors>",
+                    "recommendation": "<clear recommendation for proceeding with this lead>"
+                }}
                 """,
-                expected_output="Individual evaluation report with ICP alignment score",
+                expected_output="Individual evaluation report with ICP alignment score in JSON format",
                 agent=self.agents['individual_evaluator'],
-                context=[store_task, update_proxycurl_task]
+                context=[store_task, proxycurl_task, update_proxycurl_task]
             )
             tasks.append(indiv_eval_task)
 
@@ -304,7 +369,6 @@ class GettingAutomatedSalesAiAgent:
                 
                 Airtable record ID is available in the task context.
 
-
                 Validate that the record actually get updated in Airtable before proceeding.
                 """,
                 expected_output="Updated Airtable record with individual evaluation",
@@ -320,7 +384,6 @@ class GettingAutomatedSalesAiAgent:
                 
                 Goal: {self.crew_config['company_evaluator']['goal']}
                 
-                
                 Evaluate company {lead.get('company')} against ICP criteria:
                 - Target Industries: {', '.join(self.icp_config.get('target_industries', []))}
                 - Industries: {', '.join(self.icp_config.get('industries', []))}
@@ -331,7 +394,6 @@ class GettingAutomatedSalesAiAgent:
                 - Employee Count Range: {self.icp_config.get('minimum_requirements', {}).get('employee_count_min')} - {self.icp_config.get('minimum_requirements', {}).get('employee_count_max')}
                 
                 Company Data: {json.dumps(lead, indent=2)}
-                
                 
                 1. Industry alignment
                 2. Company size match
@@ -382,20 +444,113 @@ class GettingAutomatedSalesAiAgent:
             )
             tasks.append(update_company_task)
         
+        # Pain Point Analysis Task (for qualified leads)
+        pain_point_task = Task(
+            description=f"""
+            {self.crew_config['pain_point_agent']['backstory']}
+            
+            Goal: {self.crew_config['pain_point_agent']['goal']}
+            
+            Analyze pain points for {lead.get('company')} based on:
+            1. Individual evaluation results from previous task
+            2. Company evaluation results from previous task
+            3. Industry context
+            4. Company size and growth stage
+            5. Technology stack
+            
+            Review the evaluation results from the individual and company evaluation tasks in your context.
+            
+            Provide:
+            1. List of identified pain points
+            2. Priority ranking for each pain point
+            3. Evidence supporting each pain point
+            4. Recommendations for addressing each pain point
+            
+            Base your analysis on the evaluation results and enriched data.
+            """,
+            expected_output="Pain point analysis with prioritized recommendations",
+            agent=self.agents['pain_point_agent'],
+            context=[store_task, indiv_eval_task, company_eval_task]
+        )
+        tasks.append(pain_point_task)
+
+        # Email Campaign Task
+        email_campaign_task = Task(
+            description=f"""
+            {self.crew_config['email_campaign_agent']['backstory']}
+            
+            Goal: {self.crew_config['email_campaign_agent']['goal']}
+            
+            Generate a personalized email campaign for {lead.get('name')} at {lead.get('company')} using:
+            1. Individual evaluation insights from previous task
+            2. Company evaluation insights from previous task
+            3. Identified pain points from previous task
+            4. Our solution's value proposition
+            
+            Lead Context:
+            - Role: {lead.get('role')}
+            - Industry: {lead.get('industry')}
+            - Company Size: {lead.get('employees')}
+            
+            Review the pain points analysis from the previous task in your context.
+            
+            Create:
+            1. Initial outreach email
+            2. Follow-up sequence (2-3 emails)
+            3. Specific value propositions for each email
+            4. Call-to-action suggestions
+            
+            Ensure emails are:
+            - Personalized to the lead's context
+            - Address specific pain points
+            - Include relevant social proof
+            - Have clear next steps
+            """,
+            expected_output="Personalized email campaign sequence",
+            agent=self.agents['email_campaign_agent'],
+            context=[store_task, pain_point_task, indiv_eval_task, company_eval_task]
+        )
+        tasks.append(email_campaign_task)
+
+        # Store Email Campaign Task
+        store_campaign_task = Task(
+            description=f"""
+            Store the email campaign in Airtable.
+            
+            Update the lead record with:
+            1. Email Campaign: Full campaign sequence
+            2. Campaign Status: Ready
+            3. Last Updated: Current date
+            
+            Airtable record ID is available in the task context.
+            """,
+            expected_output="Updated Airtable record with email campaign",
+            agent=self.agents['data_manager'],
+            context=[store_task, email_campaign_task]
+        )
+        tasks.append(store_campaign_task)
+        
+        
         return tasks
 
     @property
     def crew(self):
-        """Create and return the crew with hierarchical process"""
+        """Create the crew with tasks"""
+        print("\nCreating crew...")
+        
         # Get list of worker agents (excluding manager)
         worker_agents = list(self.agents.values())
+        
+        # Use default process settings since process config is commented out
+        process_type = Process.hierarchical
+        verbose = True
         
         return Crew(
             agents=worker_agents,
             tasks=self.create_tasks(),
-            process=Process.hierarchical,
+            process=process_type,
             manager_agent=self.manager,
-            verbose=self.crew_config['process']['verbose']
+            verbose=verbose
         )
 
     def run(self):

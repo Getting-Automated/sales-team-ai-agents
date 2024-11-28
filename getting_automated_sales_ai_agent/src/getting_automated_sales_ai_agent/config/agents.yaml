@@ -1,8 +1,8 @@
 # config/agents.yaml
 
-process:
-  type: "hierarchical"
-  verbose: true
+# process:
+#   type: "hierarchical"
+#   verbose: true
 
 llm:
   model: "gpt-4o"
