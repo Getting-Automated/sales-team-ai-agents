@@ -6,6 +6,8 @@ An AI-powered sales automation system that leverages multiple AI agents to autom
 
 This project implements an advanced AI-driven sales automation system using CrewAI, a framework for orchestrating multiple AI agents. The system employs a hierarchical structure with a Sales Manager agent overseeing specialized task-specific agents, all working in coordination to automate and optimize the sales process.
 
+> **Note**: The Pain Point Identification Agent and Email Campaign Development Agent are currently under development and will be fully implemented shortly. These additions will enhance the system's ability to identify customer pain points and create personalized email campaigns.
+
 ### Key Features
 
 - **Multi-Agent System**: Utilizes specialized AI agents working in coordination
@@ -70,60 +72,81 @@ graph TD
      - Decision making based on agent outputs
 
 2. **Data Manager Agent**
-   - Role: Manages data storage and retrieval
+   - Role: Manages data storage and retrieval in Airtable
    - Key Tasks:
-     - Lead data storage in Airtable
-     - Data validation and cleaning
-     - Record updates and maintenance
-     - Data synchronization across tools
+     - Lead record creation and updates
+     - Data validation and integrity checks
+     - Status tracking and updates
+     - Relationship management between tables
 
 3. **Data Enricher Agent**
-   - Role: Enriches lead data with additional information
+   - Role: Enriches lead data with external information
    - Key Tasks:
-     - LinkedIn profile data retrieval
-     - Company information enrichment
+     - LinkedIn profile data retrieval via ProxyCurl
      - Contact information validation
-     - Data standardization
+     - Company website data extraction
+     - Data standardization and formatting
 
 4. **Company Evaluator Agent**
-   - Purpose: Analyzes company profiles for market fit
+   - Purpose: Analyzes company fit against ICP criteria
    - Key Tasks:
-     - Company data enrichment
-     - Industry analysis
-     - Market fit scoring
-     - Technology stack evaluation
+     - Industry match evaluation (25% weight)
+     - Company size analysis (25% weight)
+     - Location assessment (25% weight)
+     - Growth stage evaluation (25% weight)
+     - Market research via Perplexity
+     - Technology stack analysis
+     - Competitive landscape assessment
 
 5. **Individual Evaluator Agent**
-   - Purpose: Assesses individual lead characteristics
+   - Purpose: Assesses individual leads against ICP criteria
    - Key Tasks:
-     - Professional background analysis
-     - Role relevance evaluation
-     - Decision-making authority assessment
-     - Communication preference analysis
+     - Role match evaluation (30% weight)
+     - Authority level assessment (30% weight)
+     - Department alignment check (20% weight)
+     - Skills and experience analysis (20% weight)
+     - LinkedIn profile analysis
+     - Decision-making influence evaluation
 
-6. **Pain Point Agent**
+6. **Pain Point Agent** *(Coming Soon)*
    - Purpose: Identifies potential customer pain points
-   - Key Tasks:
-     - Industry research
-     - Competitor analysis
-     - Market trend analysis
-     - Pain point prioritization
+   - Status: Under development
+   - Planned Tasks:
+     - Industry pain point research
+     - Company-specific challenge identification
+     - Competitor pain point analysis
+     - Market trend impact assessment
+     - Reddit discussions analysis
+     - News and social media monitoring
 
-7. **Email Campaign Agent**
+7. **Email Campaign Agent** *(Coming Soon)*
    - Purpose: Creates personalized email campaigns
-   - Key Tasks:
-     - Content generation
-     - Personalization
-     - A/B testing suggestions
-     - Campaign sequencing
+   - Status: Under development
+   - Planned Tasks:
+     - Personalized content generation
+     - Multi-step sequence creation
+     - A/B testing variants
+     - Wait time optimization
+     - Pain point incorporation
+     - Call-to-action optimization
 
 8. **Offer Researcher Creator Agent**
-   - Purpose: Develops targeted solutions and offers
+   - Purpose: Matches and creates targeted offers
    - Key Tasks:
-     - Solution research
-     - Pricing analysis
-     - Proposal generation
-     - Value proposition creation
+     - Offer-lead fit analysis
+     - Fit score calculation
+     - Best offer selection
+     - Alternative offer identification
+     - Personalization recommendations
+     - Offer effectiveness analysis
+     - Multi-lead offer optimization
+
+Each agent utilizes specific tools and APIs:
+- Company Evaluator: CompanyDataTool, PerplexityTool
+- Individual Evaluator: OpenAITool
+- Data Manager: AirtableTool
+- Data Enricher: ProxycurlTool
+- Offer Creator: AirtableTool, OpenAITool
 
 ### Process Types
 
@@ -358,9 +381,27 @@ pip install -r requirements.txt
 
 ## Usage
 
+### Running the System
+
+1. Navigate to the project directory where the `pyproject.toml` is located:
+```bash
+cd sales-team-ai-agents
+```
+
+2. Run the CrewAI project:
+```bash
+crewai run
+```
+
+The system will automatically:
+- Load environment variables
+- Initialize the agent crew
+- Process leads according to the configured workflow
+- Store results in Airtable
+
 ### Processing Leads
 
-The system can process leads from CSV files containing lead information. The CSV should include fields such as:
+The system processes leads from CSV files containing lead information. The CSV should include fields such as:
 - First Name, Last Name
 - Company
 - LinkedIn URLs (Person and Company)
@@ -369,19 +410,6 @@ The system can process leads from CSV files containing lead information. The CSV
 - Company Website
 - Contact Information
 - Company Details
-
-### Running the System
-
-```python
-from getting_automated_sales_ai_agent.crew import GettingAutomatedSalesAiAgent
-
-# Initialize the crew
-crew = GettingAutomatedSalesAiAgent()
-
-# Process leads
-crew.inputs['leads'] = your_leads_data
-result = crew.run()
-```
 
 ## Configuration
 
