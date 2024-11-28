@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 import yaml
 import json
+from litellm import completion
+from datetime import datetime
 
 # Import tools
 from .tools.proxycurl_tool import ProxycurlTool
@@ -20,12 +22,18 @@ from .tools.openai_tool import OpenAITool
 from .agents.pain_point_agent import get_pain_point_agent
 from .agents.email_campaign_agent import get_email_campaign_agent
 
+# Import token tracker
+from .utils.token_tracker import TokenTracker
+
 class GettingAutomatedSalesAiAgent:
     """GettingAutomatedSalesAiAgent crew"""
 
     def __init__(self):
         # Load environment variables
         load_dotenv()
+        
+        # Initialize token tracker
+        self.token_tracker = TokenTracker()
         
         # Load configurations
         config_dir = Path(__file__).parent / "config"
@@ -49,11 +57,12 @@ class GettingAutomatedSalesAiAgent:
             'config': self.icp_config  # Include ICP config here
         }
         
-        # Initialize LLM using CrewAI's LLM class with provider prefix
+        # Initialize LLM using CrewAI's LLM class with provider prefix and token tracking
         self.llm = LLM(
-            model="openai/gpt-4o",
+            model="openai/gpt-4",
             temperature=0.7,
-            api_key=os.getenv('OPENAI_API_KEY')
+            api_key=os.getenv('OPENAI_API_KEY'),
+            callbacks=[self.token_tracker.callback]  # Add token tracking callback
         )
 
         # Initialize tools with error handling and API key validation
@@ -577,9 +586,21 @@ class GettingAutomatedSalesAiAgent:
     def run(self):
         """Execute the crew's tasks and return results"""
         try:
-            result = self.crew.kickoff()
-            print("\nCompleted analysis")
-            return result
+            # Create and run the crew
+            crew_instance = self.crew
+            results = crew_instance.kickoff()
+            
+            # Save token usage log
+            log_dir = Path(__file__).parent / "logs"
+            log_dir.mkdir(exist_ok=True)
+            log_path = log_dir / f"token_usage_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            self.token_tracker.save_usage_log(str(log_path))
+            
+            print("\nToken Usage Summary:")
+            print(json.dumps(self.token_tracker.get_usage_summary(), indent=2))
+            
+            return results
+            
         except Exception as e:
-            print(f"Error running crew: {str(e)}")
+            print(f"Error executing crew tasks: {str(e)}")
             raise

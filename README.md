@@ -210,6 +210,79 @@ The system follows a sophisticated data flow process:
    - Structured for easy retrieval and updates
    - Maintains relationships between different data points
 
+## Setup
+
+### Prerequisites
+- Python 3.8+
+- Airtable account with workspace creator permissions
+- API access to various services (OpenAI, Perplexity, ProxyCurl, etc.)
+
+### Environment Variables
+
+The project requires several API keys to function. Create a `.env` file in the root directory with the following variables (you can copy from `.env.sample`):
+
+```bash
+# OpenAI API Key for GPT-4 and other OpenAI services
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Perplexity API Key for web research
+PERPLEXITY_API_KEY=your_perplexity_api_key_here
+
+# Proxycurl API Key for LinkedIn profile data
+PROXYCURL_API_KEY=your_proxycurl_api_key_here
+
+# Airtable configuration
+AI_AGENT_AIRTABLE_API_KEY=your_airtable_api_key
+AIRTABLE_BASE_ID=your_airtable_base_id
+```
+
+> **Note**: Never commit your actual API keys to version control. The `.env` file is included in `.gitignore` to prevent accidental commits.
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone [repository-url]
+cd sales-team-ai-agents
+```
+
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+## Usage
+
+### Running the System
+
+1. Navigate to the project directory where the `pyproject.toml` is located:
+```bash
+cd sales-team-ai-agents
+```
+
+2. Run the CrewAI project:
+```bash
+crewai run
+```
+
+The system will automatically:
+- Load environment variables
+- Initialize the agent crew
+- Process leads according to the configured workflow
+- Store results in Airtable
+
+### Processing Leads
+
+The system processes leads from CSV files containing lead information. The CSV should include fields such as:
+- First Name, Last Name
+- Company
+- LinkedIn URLs (Person and Company)
+- Role/Title
+- Industry
+- Company Website
+- Contact Information
+- Company Details
+
 ## Airtable Integration
 
 ### Overview
@@ -245,7 +318,6 @@ The Airtable base "AI Sales Agent Prospecting" consists of two main tables:
    │   ├── Skills Match Score (Number)
    │   ├── Industry Match Score (Number)
    │   ├── Size Match Score (Number)
-   │   ├── Location Match Score (Number)
    │   └── Growth Match Score (Number)
    │
    └── Analysis Data
@@ -343,75 +415,42 @@ result = airtable_tool.create_or_update_lead(
 )
 ```
 
-## Setup
-
-### Prerequisites
-- Python 3.8+
-- Airtable account with workspace creator permissions
-- API access to various services (OpenAI, Perplexity, ProxyCurl, etc.)
-
-### Environment Variables
-Create a `.env` file in the root directory with the following:
-
-```env
-AIRTABLE_API_KEY=your_personal_access_token
-AIRTABLE_BASE_ID=your_base_id
-OPENAI_API_KEY=your_openai_api_key
-PERPLEXITY_API_KEY=your_perplexity_api_key
-PROXYCURL_API_KEY=your_proxycurl_api_key
-REDDIT_CLIENT_ID=your_reddit_client_id
-REDDIT_CLIENT_SECRET=your_reddit_client_secret
-REDDIT_USER_AGENT=your_reddit_user_agent
-REDDIT_USERNAME=your_reddit_username
-REDDIT_PASSWORD=your_reddit_password
-```
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone [repository-url]
-cd sales-team-ai-agents
-```
-
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-## Usage
-
-### Running the System
-
-1. Navigate to the project directory where the `pyproject.toml` is located:
-```bash
-cd sales-team-ai-agents
-```
-
-2. Run the CrewAI project:
-```bash
-crewai run
-```
-
-The system will automatically:
-- Load environment variables
-- Initialize the agent crew
-- Process leads according to the configured workflow
-- Store results in Airtable
-
-### Processing Leads
-
-The system processes leads from CSV files containing lead information. The CSV should include fields such as:
-- First Name, Last Name
-- Company
-- LinkedIn URLs (Person and Company)
-- Role/Title
-- Industry
-- Company Website
-- Contact Information
-- Company Details
-
 ## Configuration
+
+### Using the Configuration Manager UI
+
+The project includes a user-friendly web-based configuration manager that helps you set up and manage your sales AI agent configuration without having to edit YAML files directly. You can find it at:
+
+```
+getting_automated_sales_ai_agent/src/getting_automated_sales_ai_agent/ui/templates/config_manager.html
+```
+
+Key features of the Configuration Manager:
+
+1. **Visual Configuration**: Intuitive interface for setting up:
+   - Target company parameters (size, industry, business model)
+   - Target individual parameters (roles, seniority)
+   - Agent scoring weights
+   - Lead scoring thresholds
+
+2. **Interactive Scoring**: Real-time preview of how your configuration affects lead scoring
+
+3. **Templates**: Pre-built templates for common use cases
+
+4. **Validation**: Built-in validation to ensure your configuration is valid
+
+5. **Export**: Automatically generates properly formatted configuration files
+
+To use the Configuration Manager:
+
+1. Open the `config_manager.html` file in your web browser
+2. Adjust the parameters according to your needs
+3. Click "Save Configuration" to generate the configuration file
+4. The configuration will be saved in the proper format and location
+
+This tool significantly simplifies the configuration process and helps prevent syntax errors that might occur when editing YAML files manually.
+
+### YAML Configuration Files
 
 The system uses YAML configuration files located in the config directory:
 - `agents.yaml`: Defines agent roles, goals, and behaviors

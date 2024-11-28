@@ -96,6 +96,11 @@ dmypy.json
 .env.test.local
 .env.production.local
 
+# Environment variables
+.env
+.env.*
+!.env.sample
+
 # Node (if using any JavaScript/Node.js components)
 node_modules/
 npm-debug.log*
