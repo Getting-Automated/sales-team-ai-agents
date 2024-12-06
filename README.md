@@ -1,6 +1,16 @@
 # Sales Team AI Agents
 
-An AI-powered sales automation system that leverages multiple AI agents to automate and enhance the sales process, with seamless Airtable integration for lead management.
+[![Video Tutorial](https://gettingautomated.com/wp-content/uploads/2024/12/FINAL_Thumbnail-scaled.jpg)](https://youtu.be/ITRoWZ64RZo)
+
+In this comprehensive video tutorial, I demonstrate how this AI agent system revolutionizes the sales lead qualification process. The video covers:
+- The challenges of traditional lead qualification using existing sales tools
+- How our AI agents work together to automate manual research and qualification
+- A live demonstration of the system evaluating leads using ProxyCurl and custom evaluation criteria
+- Cost comparison between traditional SDR/BDR approach vs AI-powered automation
+- Detailed walkthrough of each agent's role and capabilities
+
+This system offers a more systematic, cost-effective approach to lead qualification while maintaining high accuracy and consistency in the evaluation process.
+
 
 ## Overview
 
