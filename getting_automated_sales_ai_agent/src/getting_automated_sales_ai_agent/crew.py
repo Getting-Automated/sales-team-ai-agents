@@ -59,7 +59,7 @@ class GettingAutomatedSalesAiAgent:
         
         # Initialize LLM using CrewAI's LLM class with provider prefix and token tracking
         self.llm = LLM(
-            model="openai/gpt-4",
+            model="openai/gpt-4o",
             temperature=0.7,
             api_key=os.getenv('OPENAI_API_KEY'),
             callbacks=[self.token_tracker.callback]  # Add token tracking callback
